@@ -123,9 +123,15 @@ const Parties = {
                   <td class="text-right"><span class="amount debit font-bold">${Utils.formatCurrency(p.totalPrice)}</span></td>
                   <td class="text-right"><span class="amount credit font-bold">${Utils.formatCurrency(p.totalClearedPaid)}</span></td>
                   <td>
-                    <div class="table-actions">
+                    <div class="table-actions" style="display:flex;gap:4px;align-items:center">
                       <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();Parties.viewPartyLedger('${Utils.escapeHtml(p.name)}')">
-                        📖 View Ledger
+                        📖 Ledger
+                      </button>
+                      <button class="btn btn-ghost btn-icon" onclick="event.stopPropagation();Parties.openEditParty('${Utils.escapeHtml(p.name)}')" title="Edit Party">
+                        ${Utils.icons.edit}
+                      </button>
+                      <button class="btn btn-ghost btn-icon text-danger" onclick="event.stopPropagation();Parties.deleteParty('${Utils.escapeHtml(p.name)}')" title="Delete Party">
+                        ${Utils.icons.trash}
                       </button>
                     </div>
                   </td>
@@ -171,6 +177,12 @@ const Parties = {
           </button>
           <button class="btn btn-danger btn-sm" onclick="Transactions.openAddModal('expense', '${Utils.escapeHtml(partyName)}')">
             + Due Expense Item
+          </button>
+          <button class="btn btn-outline btn-sm" onclick="Parties.openEditParty('${Utils.escapeHtml(partyName)}')">
+            ✏️ Edit Party
+          </button>
+          <button class="btn btn-outline btn-sm text-danger" onclick="Parties.deleteParty('${Utils.escapeHtml(partyName)}')">
+            🗑️ Delete
           </button>
         </div>
       </div>
@@ -569,21 +581,108 @@ const Parties = {
     `);
   },
 
-  saveParty(e) {
+  openEditParty(partyName) {
+    const dbParty = DB.getAll(DB.COLLECTIONS.PARTIES).find(p => p.name === partyName) || { name: partyName, phone: '', type: 'customer', notes: '' };
+
+    App.showModal('✏️ Edit Party', `
+      <form id="partyForm" onsubmit="Parties.saveParty(event, '${Utils.escapeHtml(partyName)}')">
+        <div class="form-group">
+          <label class="form-label">Party Name *</label>
+          <input type="text" class="form-input" name="name" required value="${Utils.escapeHtml(dbParty.name)}">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Phone Number</label>
+            <input type="tel" class="form-input" name="phone" value="${Utils.escapeHtml(dbParty.phone || '')}" placeholder="10-digit mobile number">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Type</label>
+            <select class="form-select" name="type">
+              <option value="customer" ${dbParty.type === 'customer' ? 'selected' : ''}>Customer / Client</option>
+              <option value="supplier" ${dbParty.type === 'supplier' ? 'selected' : ''}>Supplier / Vendor</option>
+              <option value="other" ${dbParty.type === 'other' ? 'selected' : ''}>Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Notes</label>
+          <textarea class="form-textarea" name="notes" rows="2" placeholder="Optional party notes...">${Utils.escapeHtml(dbParty.notes || '')}</textarea>
+        </div>
+        <div class="modal-footer" style="padding:16px 0 0;border-top:1px solid var(--border)">
+          <button type="button" class="btn btn-outline" onclick="App.closeModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Update Party</button>
+        </div>
+      </form>
+    `);
+  },
+
+  saveParty(e, oldName = null) {
     e.preventDefault();
     const form = new FormData(e.target);
-    const name = form.get('name');
-    if (!name) return;
+    const newName = form.get('name')?.trim();
+    if (!newName) return;
 
-    DB.add(DB.COLLECTIONS.PARTIES, {
-      name,
-      phone: form.get('phone'),
-      type: form.get('type'),
-      notes: form.get('notes')
-    });
+    if (oldName) {
+      // Edit existing party
+      const existing = DB.getAll(DB.COLLECTIONS.PARTIES).find(p => p.name === oldName);
+      if (existing) {
+        DB.update(DB.COLLECTIONS.PARTIES, existing.id, {
+          name: newName,
+          phone: form.get('phone'),
+          type: form.get('type'),
+          notes: form.get('notes')
+        });
+      } else {
+        DB.add(DB.COLLECTIONS.PARTIES, {
+          name: newName,
+          phone: form.get('phone'),
+          type: form.get('type'),
+          notes: form.get('notes')
+        });
+      }
 
-    App.toast('Party added! 👥', 'success');
-    App.closeModal();
-    this.viewPartyLedger(name);
+      // Sync updated party name across all incomes & expenses
+      if (oldName !== newName) {
+        const incomes = DB.getAll(DB.COLLECTIONS.INCOMES).filter(i => i.party === oldName);
+        incomes.forEach(i => DB.update(DB.COLLECTIONS.INCOMES, i.id, { party: newName }));
+
+        const expenses = DB.getAll(DB.COLLECTIONS.EXPENSES).filter(e => e.party === oldName);
+        expenses.forEach(e => DB.update(DB.COLLECTIONS.EXPENSES, e.id, { party: newName }));
+      }
+
+      App.toast('Party details updated! ✏️', 'success');
+      App.closeModal();
+      this.viewPartyLedger(newName);
+    } else {
+      // Add new party
+      DB.add(DB.COLLECTIONS.PARTIES, {
+        name: newName,
+        phone: form.get('phone'),
+        type: form.get('type'),
+        notes: form.get('notes')
+      });
+
+      App.toast('Party added! 👥', 'success');
+      App.closeModal();
+      this.viewPartyLedger(newName);
+    }
+  },
+
+  deleteParty(partyName) {
+    if (!confirm(`Are you sure you want to delete party "${partyName}"?`)) return;
+
+    // 1. Remove from PARTIES collection
+    const dbParties = DB.getAll(DB.COLLECTIONS.PARTIES).filter(p => p.name === partyName);
+    dbParties.forEach(p => DB.delete(DB.COLLECTIONS.PARTIES, p.id));
+
+    // 2. Remove party name reference from incomes & expenses so they are no longer tagged to deleted party
+    const incomes = DB.getAll(DB.COLLECTIONS.INCOMES).filter(i => i.party === partyName);
+    incomes.forEach(i => DB.update(DB.COLLECTIONS.INCOMES, i.id, { party: '' }));
+
+    const expenses = DB.getAll(DB.COLLECTIONS.EXPENSES).filter(e => e.party === partyName);
+    expenses.forEach(e => DB.update(DB.COLLECTIONS.EXPENSES, e.id, { party: '' }));
+
+    App.toast(`Party "${partyName}" deleted! 🗑️`, 'success');
+    this.closeLedger();
   }
 };

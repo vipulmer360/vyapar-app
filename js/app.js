@@ -196,7 +196,7 @@ const App = {
               <button class="btn btn-ghost btn-icon" onclick="App.refreshPage()" title="Refresh">
                 ${Utils.icons.refresh}
               </button>
-              <button class="btn btn-ghost btn-icon" onclick="Sync.pushAll()" title="Force Sync">🔄</button>
+              <button class="btn btn-ghost btn-icon" onclick="Sync.syncNow()" title="Force Sync (Pull & Push)">🔄</button>
               ${userInfo && userInfo.photo ? `<img src="${userInfo.photo}" alt="user" class="header-user-avatar" onclick="App.handleLogout()" title="Logout">` : ''}
             </div>
           </header>

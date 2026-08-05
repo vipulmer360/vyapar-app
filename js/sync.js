@@ -236,11 +236,11 @@ const Sync = {
             if (item.id) mergedMap.set(item.id, item);
           });
 
-          // Cloud items overwrite local (cloud wins)
+          // Cloud items overwrite local or get added
           cloudItems.forEach(item => {
             if (item.id) {
               const local = mergedMap.get(item.id);
-              if (!local || (item.updatedAt && local.updatedAt && item.updatedAt > local.updatedAt)) {
+              if (!local || !item.updatedAt || !local.updatedAt || item.updatedAt >= local.updatedAt) {
                 mergedMap.set(item.id, item);
               }
             }
@@ -261,6 +261,12 @@ const Sync = {
     // Now push merged data back to cloud
     await this.pushAll();
     App.refreshPage();
+  },
+
+  // Full Two-Way Sync (Pull + Merge + Push)
+  async syncNow() {
+    App.toast('Syncing with Cloud... 🔄', 'info');
+    await this.smartSync();
   },
 
   // ========== REAL-TIME LISTENERS ==========
