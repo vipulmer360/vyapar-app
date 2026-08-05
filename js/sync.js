@@ -14,6 +14,7 @@ const Sync = {
     'vyapar_incomes': 'incomes',
     'vyapar_expenses': 'expenses',
     'vyapar_accounts': 'accounts',
+    'vyapar_parties': 'parties',
     'vyapar_categories': 'categories',
     'vyapar_settings': 'settings',
     'vyapar_counters': 'counters'
