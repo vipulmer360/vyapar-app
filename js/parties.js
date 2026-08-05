@@ -252,12 +252,12 @@ const Parties = {
                   <input type="checkbox" class="pending-chk" data-type="${t.type}" data-id="${t.id}" data-price="${t.price || t.amount}" onchange="Parties.updateClearanceBar()">
                 </td>
                 <td>${Utils.formatDate(t.date)}</td>
-                <td class="font-bold">
+                <td>
                   ${Utils.escapeHtml(t.itemName || 'General Item')}
                   ${t.isPartyOnly ? `<span class="badge badge-accent" style="font-size:0.65rem;margin-left:4px" title="Visible only in Party Ledger">🔒 Party Only</span>` : ''}
                 </td>
-                <td class="text-right font-bold" style="color:var(--accent-light)">${Utils.formatCurrency(t.price || 0)}</td>
-                <td class="text-muted">${Utils.escapeHtml(t.notes || '-')}</td>
+                <td class="text-right" style="color:var(--accent-light)">${Utils.formatCurrency(t.price || 0)}</td>
+                <td>${Utils.escapeHtml(t.notes || '-')}</td>
                 <td>
                   <div class="table-actions">
                     <button class="btn btn-ghost btn-icon" onclick="Transactions.openEditModal('${t.type}', '${t.id}')" title="Edit Entry">${Utils.icons.edit}</button>
@@ -347,13 +347,13 @@ const Parties = {
                     return `
                       <tr>
                         <td>${Utils.formatDate(t.date)}</td>
-                        <td class="font-bold text-success">
+                        <td class="text-success">
                           ${Utils.escapeHtml(t.itemName || 'Cleared Item')}
                           ${t.isPartyOnly ? `<span class="badge badge-accent" style="font-size:0.65rem;margin-left:4px" title="Visible only in Party Ledger">🔒 Party Only</span>` : ''}
                         </td>
                         <td><span class="badge badge-accent">${Utils.escapeHtml(acc?.name || t.accountName || 'Cash')}</span></td>
-                        <td class="text-muted">${Utils.escapeHtml(t.notes || '-')}</td>
-                        <td class="text-right font-bold text-success">${Utils.formatCurrency(t.price || t.amount)}</td>
+                        <td>${Utils.escapeHtml(t.notes || '-')}</td>
+                        <td class="text-right text-success">${Utils.formatCurrency(t.price || t.amount)}</td>
                         <td>
                           <div class="table-actions">
                             <button class="btn btn-ghost btn-icon" onclick="Transactions.openEditModal('${t.type}', '${t.id}')" title="Edit Entry">${Utils.icons.edit}</button>

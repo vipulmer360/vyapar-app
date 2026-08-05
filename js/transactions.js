@@ -119,19 +119,19 @@ const Transactions = {
                   const isInc = t.type === 'income';
                   return `
                     <tr>
-                      <td class="font-bold">
+                      <td>
                         ${Utils.escapeHtml(t.itemName || 'General Item')}
                         ${t.isPartyOnly ? `<span class="badge badge-accent" style="font-size:0.65rem;margin-left:4px" title="Visible only in Party Ledger">🔒 Party Only</span>` : ''}
                       </td>
                       ${!isPartyLedger ? `
                         <td>${this.formatPartyCell(t.party)}</td>
                         <td><span class="badge badge-accent">${Utils.escapeHtml(acc?.name || t.accountName || 'Cash')}</span></td>
-                        <td class="text-right font-bold">
+                        <td class="text-right">
                           <span class="amount ${isInc ? 'credit' : 'debit'}">${isInc ? '+' : '-'}${Utils.formatCurrency(t.amount)}</span>
                         </td>
                       ` : ''}
-                      <td class="text-right font-bold" style="color:var(--accent-light)">${Utils.formatCurrency(t.price || 0)}</td>
-                      <td class="text-muted">${Utils.escapeHtml(t.notes || '-')}</td>
+                      <td class="text-right" style="color:var(--accent-light)">${Utils.formatCurrency(t.price || 0)}</td>
+                      <td>${Utils.escapeHtml(t.notes || '-')}</td>
                       <td>
                         <div class="table-actions">
                           <button class="btn btn-ghost btn-icon" onclick="Transactions.openEditModal('${t.type}', '${t.id}')" title="Edit">${Utils.icons.edit}</button>
