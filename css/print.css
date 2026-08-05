@@ -1,0 +1,291 @@
+/* ==========================================
+   VYAPAR PWA — INVOICE PRINT STYLES
+   ========================================== */
+
+@media print {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  body {
+    background: white !important;
+    color: #1a1a2e !important;
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+  }
+
+  /* Hide everything except print area */
+  .sidebar,
+  .bottom-nav,
+  .top-header,
+  .toast-container,
+  .modal-overlay,
+  .install-banner,
+  .no-print {
+    display: none !important;
+  }
+
+  .main-content {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .page-content {
+    padding: 0 !important;
+  }
+
+  .page-section {
+    display: none !important;
+  }
+
+  /* Show only the print invoice */
+  .print-invoice {
+    display: block !important;
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+
+  .print-invoice * {
+    color: #1a1a2e !important;
+    background: white !important;
+    border-color: #ddd !important;
+  }
+}
+
+/* ---------- Invoice Template ---------- */
+.print-invoice {
+  display: none;
+  background: white;
+  color: #1a1a2e;
+  padding: 30px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.invoice-watermark {
+  text-align: center;
+  font-size: 10px;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  margin-bottom: 16px;
+}
+
+.invoice-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #4f46e5;
+  margin-bottom: 20px;
+}
+
+.invoice-company h2 {
+  font-size: 22px;
+  font-weight: 800;
+  color: #4f46e5 !important;
+  margin-bottom: 4px;
+}
+
+.invoice-company p {
+  font-size: 11px;
+  color: #666;
+  margin: 1px 0;
+}
+
+.invoice-meta {
+  text-align: right;
+}
+
+.invoice-meta h3 {
+  font-size: 18px;
+  font-weight: 800;
+  color: #4f46e5 !important;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.invoice-meta p {
+  font-size: 11px;
+  color: #666;
+  margin: 2px 0;
+}
+
+.invoice-meta strong {
+  color: #1a1a2e;
+}
+
+/* Party Details */
+.invoice-parties {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.invoice-party {
+  flex: 1;
+}
+
+.invoice-party h4 {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #999;
+  margin-bottom: 6px;
+}
+
+.invoice-party p {
+  font-size: 12px;
+  color: #333;
+  margin: 2px 0;
+}
+
+.invoice-party .party-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1a1a2e;
+}
+
+/* Items Table */
+.invoice-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+
+.invoice-table th {
+  background: #4f46e5 !important;
+  color: white !important;
+  padding: 10px 12px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.invoice-table th:last-child,
+.invoice-table td:last-child {
+  text-align: right;
+}
+
+.invoice-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #eee;
+  font-size: 12px;
+}
+
+.invoice-table tr:nth-child(even) td {
+  background: #f8f9fa !important;
+}
+
+/* Totals */
+.invoice-summary {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 24px;
+}
+
+.invoice-totals-print {
+  width: 280px;
+}
+
+.invoice-total-line {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-size: 12px;
+}
+
+.invoice-total-line.subtotal {
+  border-top: 1px solid #ddd;
+  padding-top: 8px;
+  margin-top: 4px;
+}
+
+.invoice-total-line.grand {
+  border-top: 2px solid #4f46e5;
+  padding-top: 10px;
+  margin-top: 8px;
+  font-size: 16px;
+  font-weight: 800;
+  color: #4f46e5 !important;
+}
+
+/* Amount in Words */
+.invoice-words {
+  background: #f8f9fa !important;
+  padding: 10px 14px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  font-size: 11px;
+}
+
+.invoice-words strong {
+  color: #4f46e5 !important;
+}
+
+/* Bank Details & Notes */
+.invoice-footer-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-top: 40px;
+  padding-top: 16px;
+  border-top: 1px solid #ddd;
+}
+
+.invoice-bank h4,
+.invoice-signature h4 {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #999;
+  margin-bottom: 6px;
+}
+
+.invoice-bank p {
+  font-size: 11px;
+  color: #666;
+  margin: 2px 0;
+}
+
+.invoice-signature {
+  text-align: right;
+}
+
+.invoice-signature .sig-line {
+  width: 150px;
+  border-top: 1px solid #333;
+  margin-top: 40px;
+  padding-top: 4px;
+  font-size: 11px;
+  color: #666;
+  margin-left: auto;
+}
+
+/* Terms */
+.invoice-terms {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top: 1px solid #eee;
+}
+
+.invoice-terms h4 {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #999;
+  margin-bottom: 4px;
+}
+
+.invoice-terms p {
+  font-size: 10px;
+  color: #999;
+}
