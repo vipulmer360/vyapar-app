@@ -15,6 +15,9 @@
   --bg-glass: rgba(255, 255, 255, 0.03);
   --bg-input: rgba(255, 255, 255, 0.06);
   --bg-modal: rgba(0, 0, 0, 0.7);
+  --bg-header: rgba(10, 14, 26, 0.85);
+  --bg-sidebar: #111827;
+  --bg-bottom-nav: rgba(17, 24, 39, 0.95);
 
   /* Accent Colors */
   --accent: #6366f1;
@@ -84,6 +87,9 @@
   --bg-glass: rgba(0, 0, 0, 0.03);
   --bg-input: rgba(0, 0, 0, 0.04);
   --bg-modal: rgba(255, 255, 255, 0.8);
+  --bg-header: rgba(255, 255, 255, 0.85);
+  --bg-sidebar: #ffffff;
+  --bg-bottom-nav: rgba(255, 255, 255, 0.95);
 
   --text-primary: #0f172a;
   --text-secondary: #475569;
@@ -184,7 +190,7 @@ img {
   top: 0;
   bottom: 0;
   width: var(--sidebar-width);
-  background: var(--bg-secondary);
+  background: var(--bg-sidebar);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
@@ -295,7 +301,7 @@ img {
   top: 0;
   z-index: 50;
   height: var(--header-height);
-  background: rgba(10, 14, 26, 0.85);
+  background: var(--bg-header);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border);
@@ -349,7 +355,7 @@ img {
   left: 0;
   right: 0;
   height: var(--bottom-nav-height);
-  background: rgba(17, 24, 39, 0.95);
+  background: var(--bg-bottom-nav);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-top: 1px solid var(--border);

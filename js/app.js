@@ -79,7 +79,19 @@ const App = {
   registerServiceWorker() {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./service-worker.js')
-        .then(reg => console.log('SW registered:', reg.scope))
+        .then(reg => {
+          console.log('SW registered:', reg.scope);
+          reg.update(); // Force check for new SW
+
+          // Reload page if a new SW takes control
+          let refreshing = false;
+          navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (!refreshing) {
+              refreshing = true;
+              window.location.reload();
+            }
+          });
+        })
         .catch(err => console.log('SW failed:', err));
     }
   },
