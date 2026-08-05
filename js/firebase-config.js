@@ -5,12 +5,13 @@
 // ⚠️ IMPORTANT: Replace these values with YOUR Firebase project config!
 // Go to https://console.firebase.google.com → Create Project → Web App → Copy Config
 const FIREBASE_CONFIG = {
-  apiKey: "YOUR_API_KEY_HERE",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyC7cQpvpYg3C0TmNPPdjmJ0U99tnUZo9nE",
+  authDomain: "vyapar-app-95a80.firebaseapp.com",
+  projectId: "vyapar-app-95a80",
+  storageBucket: "vyapar-app-95a80.firebasestorage.app",
+  messagingSenderId: "937253556831",
+  appId: "1:937253556831:web:f7a4d95e7e4af937fa01ea",
+  measurementId: "G-S1EL85F1W1"
 };
 
 // Initialize Firebase
