@@ -81,6 +81,54 @@ const Settings = {
           </form>
         </div>
 
+        <!-- Cloud Sync & Account Status -->
+        <div class="card mb-3">
+          <div class="card-header">
+            <h3 class="card-title">☁️ Cloud Account & Sync</h3>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--bg-glass);border-radius:var(--radius-sm)">
+              <div>
+                <div class="font-bold">👤 Account: ${Auth.getUserInfo() ? Utils.escapeHtml(Auth.getUserInfo().name) : 'Not Logged In'}</div>
+                <div class="text-muted" style="font-size:0.8rem">${Auth.getUserInfo() ? Utils.escapeHtml(Auth.getUserInfo().email) : ''}</div>
+              </div>
+              <button class="btn btn-outline btn-sm" onclick="App.handleLogout()">
+                🚪 Logout
+              </button>
+            </div>
+
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--bg-glass);border-radius:var(--radius-sm)">
+              <div>
+                <div class="font-bold">📥 Pull Cloud Data (Restore)</div>
+                <div class="text-muted" style="font-size:0.8rem">Download data saved in your Google Account to this device</div>
+              </div>
+              <button class="btn btn-success btn-sm" onclick="Sync.pullAll()">
+                📥 Restore Cloud Data
+              </button>
+            </div>
+
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--bg-glass);border-radius:var(--radius-sm)">
+              <div>
+                <div class="font-bold">📤 Push Local Data</div>
+                <div class="text-muted" style="font-size:0.8rem">Upload data from this device to your Google Account</div>
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="Sync.pushAll()">
+                📤 Push to Cloud
+              </button>
+            </div>
+
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--bg-glass);border-radius:var(--radius-sm)">
+              <div>
+                <div class="font-bold">🔄 Two-Way Smart Sync</div>
+                <div class="text-muted" style="font-size:0.8rem">Merge local device data and cloud data</div>
+              </div>
+              <button class="btn btn-accent btn-sm" onclick="Sync.syncNow()">
+                🔄 Smart Sync
+              </button>
+            </div>
+          </div>
+        </div>
+
         <!-- Data Management -->
         <div class="card mb-3">
           <div class="card-header">

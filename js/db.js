@@ -10,6 +10,10 @@ const DB = {
     CATEGORIES: 'vyapar_categories',
     ACCOUNTS: 'vyapar_accounts',
     PARTIES: 'vyapar_parties',
+    SALES: 'vyapar_sales',
+    PURCHASES: 'vyapar_purchases',
+    PAYMENTS: 'vyapar_payments',
+    ITEMS: 'vyapar_items',
     SETTINGS: 'vyapar_settings',
     COUNTERS: 'vyapar_counters'
   },

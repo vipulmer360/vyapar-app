@@ -29,6 +29,17 @@ const App = {
     // Listen for auth state changes
     Auth.onAuthStateChanged(user => {
       if (user) {
+        // Detect user switch: if different user logged in, clear local data first
+        const lastUid = localStorage.getItem('vyapar_lastUid');
+        if (lastUid && lastUid !== user.uid) {
+          console.log('🔄 Different user detected — clearing old local data...');
+          // Clear all collection data (not settings needed for app shell)
+          Object.values(DB.COLLECTIONS).forEach(col => {
+            localStorage.removeItem(col);
+          });
+        }
+        localStorage.setItem('vyapar_lastUid', user.uid);
+
         // User is logged in — show main app
         this.renderShell();
         this.handleRouting();
@@ -49,7 +60,7 @@ const App = {
           }
         });
 
-        // Start smart sync
+        // Start smart sync (pulls cloud data for this user)
         if (typeof Sync !== 'undefined') {
           Sync.smartSync();
         }
