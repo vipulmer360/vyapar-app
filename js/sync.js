@@ -77,8 +77,8 @@ const Sync = {
   },
 
   // Push ALL collections to cloud
-  async pushAll() {
-    if (this.isSyncing) return;
+  async pushAll(force = false) {
+    if (this.isSyncing && !force) return;
     this.isSyncing = true;
     this._updateSyncIndicator('syncing');
 
@@ -132,8 +132,8 @@ const Sync = {
   },
 
   // Pull ALL collections from cloud
-  async pullAll() {
-    if (this.isSyncing) return;
+  async pullAll(force = false) {
+    if (this.isSyncing && !force) return;
     this.isSyncing = true;
     this._updateSyncIndicator('syncing');
 
@@ -183,12 +183,12 @@ const Sync = {
       if (cloudHasData && !localHasData) {
         // Cloud has data, local is empty → Pull from cloud
         console.log('📥 First login — pulling cloud data...');
-        await this.pullAll();
+        await this.pullAll(true);
         App.toast('Cloud data restored! ☁️', 'success');
       } else if (localHasData && !cloudHasData) {
         // Local has data, cloud is empty → Push to cloud
         console.log('☁️ First sync — pushing local data to cloud...');
-        await this.pushAll();
+        await this.pushAll(true);
         App.toast('Local data synced to cloud! ☁️', 'success');
       } else if (cloudHasData && localHasData) {
         // Both have data → Merge (cloud wins for each collection based on timestamp)
@@ -264,7 +264,7 @@ const Sync = {
     }
 
     // Now push merged data back to cloud
-    await this.pushAll();
+    await this.pushAll(true);
     App.refreshPage();
   },
 
@@ -288,7 +288,7 @@ const Sync = {
       if (this.isSyncing) return; // Skip if we're the ones syncing
 
       snapshot.docChanges().forEach(change => {
-        if (change.type === 'modified') {
+        if (change.type === 'modified' || change.type === 'added') {
           const data = change.doc.data();
           if (data.localKey && data.content) {
             // Check if this change is newer than local
