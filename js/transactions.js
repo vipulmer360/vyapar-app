@@ -228,7 +228,10 @@ const Transactions = {
   },
 
   renderRecentDashboardRows(count = 4) {
-    const allTrans = this.getAllTransactions(false).slice(0, count);
+    let allTrans = this.getAllTransactions(false);
+    if (count > 0) {
+      allTrans = allTrans.slice(0, count);
+    }
     return this.renderDateGroupCards(allTrans);
   },
 

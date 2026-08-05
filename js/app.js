@@ -23,6 +23,10 @@ const App = {
     this.registerServiceWorker();
     this.handleInstallPrompt();
 
+    // Initialize theme
+    const savedTheme = localStorage.getItem('vyapar_theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+
     // Initialize sync module
     if (typeof Sync !== 'undefined') Sync.init();
 
@@ -204,6 +208,9 @@ const App = {
             </div>
             <div class="header-actions" style="display:flex;align-items:center;gap:8px">
               <div class="sync-indicator" id="syncIndicator">☁️ <span>Synced</span></div>
+              <button class="btn btn-ghost btn-icon" onclick="App.toggleTheme()" title="Toggle Theme">
+                <span id="themeIcon">${document.documentElement.getAttribute('data-theme') === 'light' ? '🌙' : '☀️'}</span>
+              </button>
               <button class="btn btn-ghost btn-icon" onclick="App.refreshPage()" title="Refresh">
                 ${Utils.icons.refresh}
               </button>
@@ -245,6 +252,20 @@ const App = {
       <!-- Print Invoice Area -->
       <div class="print-invoice" id="printInvoice"></div>
     `;
+  },
+
+  // Toggle Dark/Light Theme
+  toggleTheme() {
+    const root = document.documentElement;
+    const currentTheme = root.getAttribute('data-theme');
+    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+    root.setAttribute('data-theme', newTheme);
+    localStorage.setItem('vyapar_theme', newTheme);
+    
+    const themeIcon = document.getElementById('themeIcon');
+    if (themeIcon) {
+      themeIcon.textContent = newTheme === 'light' ? '🌙' : '☀️';
+    }
   },
 
   // Handle Logout

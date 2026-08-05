@@ -40,13 +40,15 @@ const Dashboard = {
         </button>
       </div>
 
-      <!-- Recent Transactions (4 Rows) -->
+      <!-- Recent Transactions (All) -->
       <div class="recent-list mt-3">
         <div class="recent-list-header">
-          <div class="recent-list-title">🧾 Recent Transactions</div>
-          <button class="btn btn-sm btn-outline" onclick="App.navigate('transactions')">View All</button>
+          <div class="recent-list-title">🧾 All Recent Transactions</div>
+          <button class="btn btn-sm btn-outline" onclick="App.navigate('transactions')">Manage</button>
         </div>
-        ${Transactions.renderRecentDashboardRows(4)}
+        <div style="padding-bottom: 20px;">
+          ${Transactions.renderRecentDashboardRows(0)}
+        </div>
       </div>
     `;
   },
