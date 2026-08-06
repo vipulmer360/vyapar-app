@@ -124,9 +124,6 @@ const Parties = {
                   <td class="text-right"><span class="amount credit font-bold">${Utils.formatCurrency(p.totalClearedPaid)}</span></td>
                   <td>
                     <div class="table-actions" style="display:flex;gap:4px;align-items:center">
-                      <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();Parties.viewPartyLedger('${Utils.escapeHtml(p.name)}')">
-                        📖 Ledger
-                      </button>
                       <button class="btn btn-ghost btn-icon" onclick="event.stopPropagation();Parties.openEditParty('${Utils.escapeHtml(p.name)}')" title="Edit Party">
                         ${Utils.icons.edit}
                       </button>
@@ -165,9 +162,12 @@ const Parties = {
           <button class="btn btn-outline" onclick="Parties.closeLedger()">
             ⬅️ Back to All Parties
           </button>
-          <h2 style="font-size:1.2rem;font-weight:700;margin-left:12px">👤 Party Ledger: ${Utils.escapeHtml(partyName)}</h2>
+          <h2 style="font-size:1.4rem;font-weight:800;margin-left:12px">👤 ${Utils.escapeHtml(partyName)}</h2>
         </div>
         <div class="toolbar-right flex gap-2 items-center">
+          <button class="btn btn-outline btn-sm" onclick="App.undoLastAction()" title="Undo last action" style="color:var(--text-accent);border-color:var(--border);font-weight:700">
+            ↩️ Undo
+          </button>
           <div style="font-size:1.05rem;font-weight:700;padding:6px 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);display:flex;align-items:center;gap:6px">
             <span>Pending Due Total:</span>
             <strong class="text-danger">${Utils.formatCurrency(stats.totalPrice)}</strong>
@@ -214,19 +214,19 @@ const Parties = {
 
     return `
       <!-- Bill Clearance Control Bar -->
-      <div id="clearanceBar" style="background:var(--bg-glass);border:1px solid var(--accent);border-radius:var(--radius-md);padding:14px 20px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div id="clearanceBar" style="background:var(--bg-glass);border:1px solid var(--accent);border-radius:var(--radius-md);padding:14px;margin-bottom:16px;display:flex;flex-direction:column;gap:12px">
         <div>
           <span id="selectedCountText" style="font-weight:700">0 Bills Selected</span>
-          <div style="font-size:1.2rem;font-weight:800;color:var(--text-success)" id="selectedTotalText">Total Payable: ₹0.00</div>
+          <div style="font-size:1.3rem;font-weight:800;color:var(--text-success)" id="selectedTotalText">Total: 0.00</div>
         </div>
-        <div class="flex gap-2 items-center flex-wrap">
-          <select id="clearanceAccountSelect" class="form-select" style="min-width:180px">
-            <option value="">Select Payment Account *</option>
-            ${accounts.map(a => `<option value="${a.id}">${Utils.escapeHtml(a.name)} (${Utils.formatCurrency(a.balance)})</option>`).join('')}
+        <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; width:100%">
+          <select id="clearanceAccountSelect" class="form-select" style="flex:1; min-width:140px; height:40px">
+            <option value="">Select Account *</option>
+            ${accounts.map(a => `<option value="${a.id}">${Utils.escapeHtml(a.name)}</option>`).join('')}
           </select>
-          <input type="date" id="clearanceDate" class="form-input" value="${Utils.today()}" style="width:auto">
-          <button class="btn btn-success" id="clearanceSubmitBtn" onclick="Parties.processClearance('${Utils.escapeHtml(partyName)}')" disabled style="padding:10px 18px;font-weight:700">
-            💳 Pay & Clear Selected Bills
+          <input type="date" id="clearanceDate" class="form-input" value="${Utils.today()}" style="flex:1; min-width:120px; height:40px">
+          <button class="btn btn-success" id="clearanceSubmitBtn" onclick="Parties.processClearance('${Utils.escapeHtml(partyName)}')" disabled style="height:40px;font-weight:700;flex-grow:1;min-width:200px">
+            💳 Pay & Clear
           </button>
         </div>
       </div>
@@ -240,8 +240,8 @@ const Parties = {
               </th>
               <th>Date</th>
               <th>Item Name</th>
-              <th class="text-right">Price (₹)</th>
-              <th>Notes</th>
+              <th class="text-center">Price</th>
+              <th class="text-center">Notes</th>
               <th class="text-right">Actions</th>
             </tr>
           </thead>
@@ -256,8 +256,8 @@ const Parties = {
                   ${Utils.escapeHtml(t.itemName || 'General Item')}
                   ${t.isPartyOnly ? `<span class="badge badge-accent" style="font-size:0.65rem;margin-left:4px" title="Visible only in Party Ledger">🔒 Party Only</span>` : ''}
                 </td>
-                <td class="text-right" style="color:var(--accent-light)">${Utils.formatCurrency(t.price || 0)}</td>
-                <td>${Utils.escapeHtml(t.notes || '-')}</td>
+                <td class="text-center" style="color:var(--accent-light);font-weight:600">${Utils.formatCurrency(t.price || 0)}</td>
+                <td class="text-center">${Utils.escapeHtml(t.notes || '-')}</td>
                 <td>
                   <div class="table-actions">
                     <button class="btn btn-ghost btn-icon" onclick="Transactions.openEditModal('${t.type}', '${t.id}')" title="Edit Entry">${Utils.icons.edit}</button>
@@ -330,8 +330,8 @@ const Parties = {
                     <th>Entry Date</th>
                     <th>Item Name</th>
                     <th>Account Paid From</th>
-                    <th>Notes</th>
-                    <th class="text-right">Amount Paid (₹)</th>
+                    <th class="text-center">Notes</th>
+                    <th class="text-center">Amount Paid</th>
                     <th class="text-right">Actions</th>
                   </tr>
                 </thead>
@@ -352,13 +352,13 @@ const Parties = {
                           ${t.isPartyOnly ? `<span class="badge badge-accent" style="font-size:0.65rem;margin-left:4px" title="Visible only in Party Ledger">🔒 Party Only</span>` : ''}
                         </td>
                         <td><span class="badge badge-accent">${Utils.escapeHtml(acc?.name || t.accountName || 'Cash')}</span></td>
-                        <td>${Utils.escapeHtml(t.notes || '-')}</td>
-                        <td class="text-right text-success">${Utils.formatCurrency(t.price || t.amount)}</td>
+                        <td class="text-center">${Utils.escapeHtml(t.notes || '-')}</td>
+                        <td class="text-center text-success" style="font-weight:600">${Utils.formatCurrency(t.price || t.amount)}</td>
                         <td>
                           <div class="table-actions">
                             <button class="btn btn-ghost btn-icon" onclick="Transactions.openEditModal('${t.type}', '${t.id}')" title="Edit Entry">${Utils.icons.edit}</button>
-                            <button class="btn btn-outline btn-sm" onclick="Parties.revertSingleBillClearance('${t.id}', '${t.type}')" title="Return to Pending Bills" style="color:var(--text-danger);border-color:var(--border)">
-                              ↩️ Return Pending
+                            <button class="btn btn-ghost btn-icon text-danger" onclick="Parties.revertSingleBillClearance('${t.id}', '${t.type}')" title="Return to Pending Bills">
+                              ↩️
                             </button>
                           </div>
                         </td>
@@ -417,7 +417,7 @@ const Parties = {
     const date = dateInput && dateInput.value ? dateInput.value : Utils.today();
 
     if (!accountId) {
-      App.toast('Please select a payment account to deduct money from', 'error');
+      App.toast('Please select a payment account', 'error');
       return;
     }
 
@@ -429,66 +429,53 @@ const Parties = {
 
     let totalAmount = 0;
     const selectedItems = [];
-    const itemSummaryList = [];
 
     checkboxes.forEach(chk => {
-      const type = chk.getAttribute('data-type');
+      const type = chk.getAttribute('data-type') || 'expense';
       const id = chk.getAttribute('data-id');
       const price = parseFloat(chk.getAttribute('data-price')) || 0;
-
-      const collection = type === 'income' ? DB.COLLECTIONS.INCOMES : DB.COLLECTIONS.EXPENSES;
-      const rec = DB.getById(collection, id);
-      const name = rec ? (rec.itemName || 'Item') : 'Item';
-
-      if (rec) {
-        DB.update(collection, id, { amount: price, price, accountId, accountName: account.name });
-      }
-
       totalAmount += price;
-      selectedItems.push({ type, id, price, name });
-      itemSummaryList.push(`${name} (${Utils.formatCurrency(price)})`);
+      selectedItems.push({ type, id, price });
     });
 
-    const clearedItemsText = itemSummaryList.join(', ');
-
-    // Create ONE SINGLE Settlement Payment Expense in DB & Account first to get its ID
-    const settlementRecord = {
-      itemName: `Bill Settlement (${selectedItems.length} items paid)`,
+    // Create ONE SINGLE Expense Group Settlement entry (Paisa chukaya = Expense = -Amount)
+    const expSettlement = {
+      itemName: `Bill ${partyName}`,
       amount: totalAmount,
-      price: totalAmount,
+      price: 0,
       date,
       party: partyName,
       accountId,
       accountName: account.name,
-      notes: `Paid: ${clearedItemsText}`,
-      clearedItemsText,
-      isPartyOnly: false, // This single total payment reflects in Main Transactions & Dashboard!
+      notes: `${account.name}`,
+      isPartyOnly: false,
       isSettlement: true,
-      status: 'cleared'
+      status: 'cleared',
+      type: 'expense'
     };
 
-    const newSettlementId = DB.add(DB.COLLECTIONS.EXPENSES, settlementRecord);
+    const expSettlementRes = DB.add(DB.COLLECTIONS.EXPENSES, expSettlement);
+    const expSettlementId = expSettlementRes ? expSettlementRes.id : null;
 
     selectedItems.forEach(item => {
       const collection = item.type === 'income' ? DB.COLLECTIONS.INCOMES : DB.COLLECTIONS.EXPENSES;
       DB.update(collection, item.id, {
         status: 'cleared',
-        clearanceId: newSettlementId,
+        clearanceId: expSettlementId,
         clearedAt: new Date().toISOString()
       });
     });
 
-    // Deduct single total amount from Account balance
-    DB.update(DB.COLLECTIONS.ACCOUNTS, accountId, {
-      balance: Utils.parseNum(account.balance) - totalAmount
-    });
+    // Subtract total paid from account balance
+    const newBalance = Utils.parseNum(account.balance) - totalAmount;
+    DB.update(DB.COLLECTIONS.ACCOUNTS, accountId, { balance: newBalance });
 
-    App.toast(`Successfully paid & cleared ${Utils.formatCurrency(totalAmount)} for ${partyName}! 💳`, 'success');
+    App.toast(`Successfully paid & cleared ${Utils.formatCurrency(totalAmount)}! 💳`, 'success');
     App.refreshPage();
   },
 
   revertSingleBillClearance(id, type) {
-    if (!confirm('Return this bill item to Pending Bills? Paid amount will be refunded to account.')) return;
+    if (!confirm('Return this bill to Pending? Paid amount will be refunded to your account.')) return;
 
     const collection = type === 'income' ? DB.COLLECTIONS.INCOMES : DB.COLLECTIONS.EXPENSES;
     const record = DB.getById(collection, id);
@@ -500,35 +487,57 @@ const Parties = {
 
     const itemAmount = Utils.parseNum(record.price || record.amount);
 
-    // Refund money to Account balance
-    if (record.accountId) {
-      const account = DB.getById(DB.COLLECTIONS.ACCOUNTS, record.accountId);
+    // Get the settlement record FIRST to find the actual payment account and amount
+    let settlement = null;
+    if (record.clearanceId) {
+      settlement = DB.getById(DB.COLLECTIONS.EXPENSES, record.clearanceId);
+      if (!settlement) {
+        settlement = DB.getById(DB.COLLECTIONS.INCOMES, record.clearanceId);
+      }
+    }
+
+    const paymentAccountId = settlement ? settlement.accountId : record.accountId;
+
+    // Save state to App.lastAction for Undo
+    App.lastAction = {
+      type: 'revert_clearance',
+      data: {
+        billCollection: collection,
+        billId: id,
+        settlementCollection: settlement ? (settlement.type === 'income' ? DB.COLLECTIONS.INCOMES : DB.COLLECTIONS.EXPENSES) : DB.COLLECTIONS.EXPENSES,
+        settlementId: record.clearanceId,
+        settlementRecord: settlement ? JSON.parse(JSON.stringify(settlement)) : null,
+        paymentAccountId,
+        itemAmount,
+        isIncome: type === 'income'
+      }
+    };
+
+    // Refund paid money back into account (+itemAmount)
+    if (paymentAccountId) {
+      const account = DB.getById(DB.COLLECTIONS.ACCOUNTS, paymentAccountId);
       if (account) {
-        const refundChange = type === 'income' ? -itemAmount : itemAmount;
-        DB.update(DB.COLLECTIONS.ACCOUNTS, record.accountId, {
-          balance: Utils.parseNum(account.balance) + refundChange
+        DB.update(DB.COLLECTIONS.ACCOUNTS, paymentAccountId, {
+          balance: Utils.parseNum(account.balance) + itemAmount
         });
       }
     }
 
-    // If part of a settlement receipt, adjust or remove the settlement receipt
-    if (record.clearanceId) {
-      const settlement = DB.getById(DB.COLLECTIONS.EXPENSES, record.clearanceId) || DB.getById(DB.COLLECTIONS.INCOMES, record.clearanceId);
-      if (settlement) {
-        const setCol = settlement.type === 'income' ? DB.COLLECTIONS.INCOMES : DB.COLLECTIONS.EXPENSES;
-        const newAmount = Utils.parseNum(settlement.amount) - itemAmount;
-        if (newAmount <= 0) {
-          DB.delete(setCol, record.clearanceId);
-        } else {
-          DB.update(setCol, record.clearanceId, { amount: newAmount, price: newAmount });
-        }
+    // Adjust or delete the expense settlement receipt
+    if (settlement) {
+      const setCol = settlement.type === 'income' ? DB.COLLECTIONS.INCOMES : DB.COLLECTIONS.EXPENSES;
+      const newAmount = Utils.parseNum(settlement.amount) - itemAmount;
+      if (newAmount <= 0.01) {
+        DB.delete(setCol, record.clearanceId);
+      } else {
+        DB.update(setCol, record.clearanceId, { amount: newAmount, price: 0 });
       }
     }
 
-    // Reset item status to pending
+    // Reset original item status to pending
     DB.update(collection, id, { status: 'pending', clearanceId: null, clearedAt: null });
 
-    App.toast(`Bill "${record.itemName || 'Item'}" returned to Pending! ↩️`, 'success');
+    App.toast(`Bill returned to Pending! <button class="btn btn-sm btn-outline" onclick="App.undoLastAction()" style="margin-left:8px;padding:2px 6px;font-size:0.75rem;color:var(--accent-light)">↩️ Undo</button>`, 'warning', 6500);
     App.refreshPage();
   },
 
@@ -550,7 +559,7 @@ const Parties = {
 
   openAddParty() {
     App.showModal('👥 Add New Party', `
-      <form id="partyForm" onsubmit="Parties.saveParty(event)">
+      <form id="partyForm" autocomplete="off" onsubmit="Parties.saveParty(event)">
         <div class="form-group">
           <label class="form-label">Party Name *</label>
           <input type="text" class="form-input" name="name" required placeholder="e.g. Ramesh Traders, Ankit Sharma">
@@ -571,7 +580,7 @@ const Parties = {
         </div>
         <div class="form-group">
           <label class="form-label">Notes</label>
-          <textarea class="form-textarea" name="notes" rows="2" placeholder="Optional party notes..."></textarea>
+          <textarea class="form-textarea" name="notes" rows="2" placeholder="Party notes..."></textarea>
         </div>
         <div class="modal-footer" style="padding:16px 0 0;border-top:1px solid var(--border)">
           <button type="button" class="btn btn-outline" onclick="App.closeModal()">Cancel</button>
@@ -585,7 +594,7 @@ const Parties = {
     const dbParty = DB.getAll(DB.COLLECTIONS.PARTIES).find(p => p.name === partyName) || { name: partyName, phone: '', type: 'customer', notes: '' };
 
     App.showModal('✏️ Edit Party', `
-      <form id="partyForm" onsubmit="Parties.saveParty(event, '${Utils.escapeHtml(partyName)}')">
+      <form id="partyForm" autocomplete="off" onsubmit="Parties.saveParty(event, '${Utils.escapeHtml(partyName)}')">
         <div class="form-group">
           <label class="form-label">Party Name *</label>
           <input type="text" class="form-input" name="name" required value="${Utils.escapeHtml(dbParty.name)}">
@@ -606,7 +615,7 @@ const Parties = {
         </div>
         <div class="form-group">
           <label class="form-label">Notes</label>
-          <textarea class="form-textarea" name="notes" rows="2" placeholder="Optional party notes...">${Utils.escapeHtml(dbParty.notes || '')}</textarea>
+          <textarea class="form-textarea" name="notes" rows="2" placeholder="Party notes...">${Utils.escapeHtml(dbParty.notes || '')}</textarea>
         </div>
         <div class="modal-footer" style="padding:16px 0 0;border-top:1px solid var(--border)">
           <button type="button" class="btn btn-outline" onclick="App.closeModal()">Cancel</button>

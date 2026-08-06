@@ -87,7 +87,7 @@ const Sales = {
     const invoiceNum = Utils.generateInvoiceNumber(settings.invoicePrefix, counter);
 
     App.showModal('Create Sales Invoice', `
-      <form id="invoiceForm" onsubmit="Sales.saveInvoice(event)">
+      <form id="invoiceForm" autocomplete="off" onsubmit="Sales.saveInvoice(event)">
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">Invoice Number</label>
@@ -112,7 +112,7 @@ const Sales = {
           <div class="form-group">
             <label class="form-label">Deposit Account</label>
             <select class="form-select" name="accountId">
-              <option value="">Select Account (Optional)</option>
+              <option value="">Select Account</option>
               ${DB.getAll(DB.COLLECTIONS.ACCOUNTS).map(a => `<option value="${a.id}">${Utils.escapeHtml(a.name)} (${Utils.formatCurrency(a.balance)})</option>`).join('')}
             </select>
           </div>
@@ -155,8 +155,8 @@ const Sales = {
         <div class="invoice-item-row header">
           <div>Item</div>
           <div>Qty</div>
-          <div>Rate (₹)</div>
-          <div>Amount (₹)</div>
+          <div>Rate</div>
+          <div>Amount</div>
           <div></div>
         </div>
         ${this.invoiceItems.map((item, idx) => `

@@ -223,9 +223,6 @@ const App = {
               <button class="btn btn-ghost btn-icon" onclick="App.toggleTheme()" title="Toggle Theme">
                 <span id="themeIcon">${document.documentElement.getAttribute('data-theme') === 'light' ? '🌙' : '☀️'}</span>
               </button>
-              <button class="btn btn-ghost btn-icon" onclick="App.refreshPage()" title="Refresh">
-                ${Utils.icons.refresh}
-              </button>
               <button class="btn btn-ghost btn-icon" onclick="Sync.syncNow()" title="Force Sync (Pull & Push)">🔄</button>
               ${userInfo && userInfo.photo ? `<img src="${userInfo.photo}" alt="user" class="header-user-avatar" onclick="App.handleLogout()" title="Logout">` : ''}
             </div>
@@ -238,13 +235,17 @@ const App = {
 
       <!-- Bottom Nav (Mobile) -->
       <nav class="bottom-nav" id="bottomNav">
-        ${['dashboard', 'transactions', 'parties', 'income', 'expense'].map(key => `
+        ${['dashboard', 'transactions', 'parties', 'accounts'].map(key => `
           <div class="bottom-nav-item ${key === this.currentPage ? 'active' : ''}" 
                onclick="App.navigate('${key}')" data-page="${key}">
-            ${Utils.icons[this.pages[key].icon]}
+            ${Utils.icons[this.pages[key].icon] || Utils.icons.list}
             <span>${key.charAt(0).toUpperCase() + key.slice(1)}</span>
           </div>
         `).join('')}
+        <div class="bottom-nav-item" onclick="App.toggleSidebar()">
+          ${Utils.icons.menu}
+          <span>Menu</span>
+        </div>
       </nav>
 
       <!-- Modal -->
@@ -303,6 +304,9 @@ const App = {
 
   // Render current page
   renderPage() {
+    if (typeof Accounts !== 'undefined' && Accounts.syncAccountBalances) {
+      Accounts.syncAccountBalances();
+    }
     const page = this.pages[this.currentPage];
     const content = document.getElementById('pageContent');
     const title = document.getElementById('pageTitle');
@@ -312,6 +316,10 @@ const App = {
         content.innerHTML = page.render();
       } else if (page.module && page.module.render) {
         content.innerHTML = page.module.render();
+      }
+      // Initialize drag & drop reorder on transaction rows
+      if (typeof Transactions !== 'undefined' && Transactions.initDragReorder) {
+        setTimeout(() => Transactions.initDragReorder(), 50);
       }
     }
     if (title) title.textContent = page.title;
@@ -364,7 +372,7 @@ const App = {
   },
 
   // Toast notification
-  toast(message, type = 'info') {
+  toast(message, type = 'info', duration = 3500) {
     const container = document.getElementById('toastContainer');
     if (!container) return;
 
@@ -380,11 +388,72 @@ const App = {
     toast.innerHTML = `<span>${icons[type] || ''}</span> ${message}`;
     container.appendChild(toast);
 
-    // Auto remove after 3 seconds
+    // Auto remove after specified duration
     setTimeout(() => {
       toast.classList.add('toast-exit');
       setTimeout(() => toast.remove(), 300);
-    }, 3000);
+    }, duration);
+  },
+
+  // Global Undo System for actions (delete, revert, etc.)
+  lastAction: null,
+
+  undoLastAction() {
+    if (!this.lastAction) {
+      this.toast('Nothing to undo!', 'info');
+      return;
+    }
+    const action = this.lastAction;
+    this.lastAction = null;
+
+    try {
+      if (action.type === 'delete_transaction') {
+        const { collection, record } = action.data;
+        DB.add(collection, record);
+
+        if (record.accountId) {
+          const account = DB.getById(DB.COLLECTIONS.ACCOUNTS, record.accountId);
+          if (account) {
+            const isInc = collection === DB.COLLECTIONS.INCOMES;
+            const change = isInc ? Utils.parseNum(record.amount) : -Utils.parseNum(record.amount);
+            DB.update(DB.COLLECTIONS.ACCOUNTS, record.accountId, {
+              balance: Utils.parseNum(account.balance) + change
+            });
+          }
+        }
+        this.toast('Deleted entry restored successfully! ↩️', 'success');
+      } else if (action.type === 'revert_clearance') {
+        const { billCollection, billId, settlementCollection, settlementId, settlementRecord, paymentAccountId, itemAmount, isIncome } = action.data;
+        
+        if (settlementId) {
+          const existingSet = DB.getById(settlementCollection, settlementId);
+          if (existingSet) {
+            const newAmount = Utils.parseNum(existingSet.amount) + itemAmount;
+            DB.update(settlementCollection, settlementId, { amount: newAmount, price: 0 });
+          } else if (settlementRecord) {
+            DB.add(settlementCollection, settlementRecord);
+          }
+        }
+
+        DB.update(billCollection, billId, { status: 'cleared', clearanceId: settlementId, clearedAt: new Date().toISOString() });
+
+        if (paymentAccountId) {
+          const account = DB.getById(DB.COLLECTIONS.ACCOUNTS, paymentAccountId);
+          if (account) {
+            const change = isIncome ? itemAmount : -itemAmount;
+            DB.update(DB.COLLECTIONS.ACCOUNTS, paymentAccountId, {
+              balance: Utils.parseNum(account.balance) + change
+            });
+          }
+        }
+        this.toast('Clearance action restored! ↩️', 'success');
+      }
+    } catch (err) {
+      console.error('Undo error:', err);
+      this.toast('Failed to undo action', 'error');
+    }
+
+    this.refreshPage();
   }
 };
 

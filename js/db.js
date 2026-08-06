@@ -33,8 +33,10 @@ const DB = {
 
   // Get single item by ID
   getById(collection, id) {
+    if (!id) return null;
+    const targetId = typeof id === 'object' ? (id.id || id) : id;
     const items = this.getAll(collection);
-    return items.find(item => item.id === id) || null;
+    return items.find(item => String(item.id) === String(targetId)) || null;
   },
 
   // Add new item
@@ -53,8 +55,10 @@ const DB = {
 
   // Update existing item
   update(collection, id, updates) {
+    if (!id) return null;
+    const targetId = typeof id === 'object' ? (id.id || id) : id;
     const items = this.getAll(collection);
-    const index = items.findIndex(item => item.id === id);
+    const index = items.findIndex(item => String(item.id) === String(targetId));
     if (index === -1) return null;
     items[index] = {
       ...items[index],
@@ -69,8 +73,10 @@ const DB = {
 
   // Delete item by ID
   delete(collection, id) {
+    if (!id) return false;
+    const targetId = typeof id === 'object' ? (id.id || id) : id;
     let items = this.getAll(collection);
-    items = items.filter(item => item.id !== id);
+    items = items.filter(item => String(item.id) !== String(targetId));
     this._save(collection, items);
     return true;
   },

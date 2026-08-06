@@ -13,7 +13,7 @@ const Settings = {
           <div class="card-header">
             <h3 class="card-title">🏢 Business Profile</h3>
           </div>
-          <form id="settingsForm" onsubmit="Settings.save(event)">
+          <form id="settingsForm" autocomplete="off" onsubmit="Settings.save(event)">
             <div class="form-group">
               <label class="form-label">Business Name</label>
               <input type="text" class="form-input" name="businessName" value="${Utils.escapeHtml(settings.businessName)}" placeholder="Your Business Name">

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Debug Accounts</title>
+<style>
+body { background:#0f172a; color:#e2e8f0; font-family:monospace; padding:20px; font-size:13px; }
+pre { white-space:pre-wrap; word-break:break-all; }
+h2 { color:#818cf8; }
+.good { color:#4ade80; }
+.bad { color:#f87171; }
+</style>
+</head>
+<body>
+<h2>🔍 Account Balance Debug Tool</h2>
+<pre id="output">Loading...</pre>
+<script src="js/utils.js"></script>
+<script src="js/db.js"></script>
+<script src="js/accounts.js"></script>
+<script>
+const out = document.getElementById('output');
+let txt = '';
+
+const accounts = DB.getAll(DB.COLLECTIONS.ACCOUNTS);
+txt += '════════════════════════════════════\n';
+txt += '  ACCOUNTS IN DATABASE\n';
+txt += '════════════════════════════════════\n';
+accounts.forEach(a => {
+  txt += `  ${a.name} | id: ${a.id} | stored balance: ${a.balance} | initialBalance: ${a.initialBalance}\n`;
+});
+
+const incomes = DB.getAll(DB.COLLECTIONS.INCOMES);
+txt += '\n════════════════════════════════════\n';
+txt += `  ALL INCOME ENTRIES (${incomes.length})\n`;
+txt += '════════════════════════════════════\n';
+incomes.forEach(i => {
+  txt += `  ${(i.itemName||'?').padEnd(20)} amt:${String(i.amount).padEnd(8)} price:${String(i.price).padEnd(8)} accId:${String(i.accountId).padEnd(15)} accName:${String(i.accountName).padEnd(15)} status:${i.status||'-'} isSett:${i.isSettlement||false} clrId:${i.clearanceId||'-'} partyOnly:${i.isPartyOnly||false}\n`;
+});
+
+const expenses = DB.getAll(DB.COLLECTIONS.EXPENSES);
+txt += '\n════════════════════════════════════\n';
+txt += `  ALL EXPENSE ENTRIES (${expenses.length})\n`;
+txt += '════════════════════════════════════\n';
+expenses.forEach(e => {
+  txt += `  ${(e.itemName||'?').padEnd(20)} amt:${String(e.amount).padEnd(8)} price:${String(e.price).padEnd(8)} accId:${String(e.accountId).padEnd(15)} accName:${String(e.accountName).padEnd(15)} status:${e.status||'-'} isSett:${e.isSettlement||false} clrId:${e.clearanceId||'-'} partyOnly:${e.isPartyOnly||false}\n`;
+});
+
+txt += '\n════════════════════════════════════\n';
+txt += '  BALANCE CALCULATION PER ACCOUNT\n';
+txt += '════════════════════════════════════\n';
+accounts.forEach(a => {
+  const trans = Accounts.getAccountTransactions(a.id);
+  const bal = Accounts.getAccountBalance(a.id);
+  
+  txt += `\n┌─ ${a.name} (id: ${a.id})\n`;
+  txt += `│  Calculated Balance = ${bal}\n`;
+  txt += `│  Stored Balance     = ${a.balance}\n`;
+  txt += `│  Matching Transactions (${trans.length}):\n`;
+  
+  if (trans.length === 0) {
+    txt += `│  ⚠️  NO TRANSACTIONS MATCHED!\n`;
+  }
+  
+  let incTotal = 0, expTotal = 0;
+  trans.forEach(t => {
+    const amt = Accounts.getItemAmount(t);
+    if (t.type === 'income') incTotal += amt;
+    else expTotal += amt;
+    txt += `│    ${t.type === 'income' ? '📥' : '📤'} ${(t.itemName||'?').padEnd(20)} type:${t.type.padEnd(8)} amt:${String(t.amount).padEnd(8)} price:${String(t.price).padEnd(8)} → getItemAmount=${amt}\n`;
+  });
+  txt += `│  Income Total: +${incTotal}  Expense Total: -${expTotal}  Net: ${incTotal - expTotal}\n`;
+  txt += `└──────────────────────────\n`;
+});
+
+out.textContent = txt;
+</script>
+</body>
+</html>

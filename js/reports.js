@@ -72,8 +72,8 @@ const Reports = {
     const expenses = DB.getAll(DB.COLLECTIONS.EXPENSES).filter(e => e.date >= range.start && e.date < range.end);
 
     const transactions = [
-      ...incomes.map(i => ({ date: i.date, type: 'Income', itemName: i.itemName || 'General Item', party: i.party || 'General', account: i.accountName, credit: Utils.parseNum(i.amount), debit: 0, notes: i.notes })),
-      ...expenses.map(e => ({ date: e.date, type: 'Expense', itemName: e.itemName || 'General Item', party: e.party || 'General', account: e.accountName, credit: 0, debit: Utils.parseNum(e.amount), notes: e.notes }))
+      ...incomes.map(i => ({ date: i.date, type: 'Income', itemName: i.itemName || 'General Item', party: i.party || 'General', account: i.accountName, credit: Accounts.getItemAmount(i), debit: 0, notes: i.notes })),
+      ...expenses.map(e => ({ date: e.date, type: 'Expense', itemName: e.itemName || 'General Item', party: e.party || 'General', account: e.accountName, credit: 0, debit: Accounts.getItemAmount(e), notes: e.notes }))
     ].sort((a, b) => new Date(b.date) - new Date(a.date));
 
     const totalIncome = transactions.reduce((sum, t) => sum + t.credit, 0);
@@ -121,8 +121,8 @@ const Reports = {
     const incomes = DB.getAll(DB.COLLECTIONS.INCOMES).filter(i => i.date >= range.start && i.date < range.end);
     const expenses = DB.getAll(DB.COLLECTIONS.EXPENSES).filter(e => e.date >= range.start && e.date < range.end);
 
-    const totalIncome = incomes.reduce((sum, i) => sum + Utils.parseNum(i.amount), 0);
-    const totalExpense = expenses.reduce((sum, e) => sum + Utils.parseNum(e.amount), 0);
+    const totalIncome = incomes.reduce((sum, i) => sum + Accounts.getItemAmount(i), 0);
+    const totalExpense = expenses.reduce((sum, e) => sum + Accounts.getItemAmount(e), 0);
     const netSavings = totalIncome - totalExpense;
 
     return `
@@ -156,13 +156,16 @@ const Reports = {
     const partiesMap = {};
     incomes.forEach(i => {
       const p = i.party || 'General';
-      if (!partiesMap[p]) partiesMap[p] = { income: 0, expense: 0 };
-      partiesMap[p].income += Utils.parseNum(i.amount);
+      if (!partiesMap[p]) partiesMap[p] = { income: 0, expense: 0, count: 0 };
+      partiesMap[p].income += Accounts.getItemAmount(i);
+      partiesMap[p].count++;
     });
+
     expenses.forEach(e => {
       const p = e.party || 'General';
-      if (!partiesMap[p]) partiesMap[p] = { income: 0, expense: 0 };
-      partiesMap[p].expense += Utils.parseNum(e.amount);
+      if (!partiesMap[p]) partiesMap[p] = { income: 0, expense: 0, count: 0 };
+      partiesMap[p].expense += Accounts.getItemAmount(e);
+      partiesMap[p].count++;
     });
 
     const partyList = Object.keys(partiesMap);

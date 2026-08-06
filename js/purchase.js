@@ -86,7 +86,7 @@ const Purchase = {
     const billNum = Utils.generateInvoiceNumber(settings.purchasePrefix, counter);
 
     App.showModal('New Purchase Bill', `
-      <form id="purchaseForm" onsubmit="Purchase.saveBill(event)">
+      <form id="purchaseForm" autocomplete="off" onsubmit="Purchase.saveBill(event)">
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">Bill Number</label>
@@ -108,7 +108,7 @@ const Purchase = {
           <div class="form-group">
             <label class="form-label">Payment Account</label>
             <select class="form-select" name="accountId">
-              <option value="">Select Account (Optional)</option>
+              <option value="">Select Account</option>
               ${DB.getAll(DB.COLLECTIONS.ACCOUNTS).map(a => `<option value="${a.id}">${Utils.escapeHtml(a.name)} (${Utils.formatCurrency(a.balance)})</option>`).join('')}
             </select>
           </div>
@@ -140,7 +140,7 @@ const Purchase = {
     return `
       <div class="invoice-items">
         <div class="invoice-item-row header">
-          <div>Item</div><div>Qty</div><div>Rate (₹)</div><div>Amount (₹)</div><div></div>
+          <div>Item</div><div>Qty</div><div>Rate</div><div>Amount</div><div></div>
         </div>
         ${this.billItems.map((item, idx) => `
           <div class="invoice-item-row" data-index="${idx}">

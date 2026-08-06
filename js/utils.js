@@ -8,22 +8,22 @@ const Utils = {
     return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
   },
 
-  // Format currency (₹)
+  // Format currency
   formatCurrency(amount) {
     const num = parseFloat(amount) || 0;
-    return '₹' + num.toLocaleString('en-IN', {
+    return num.toLocaleString('en-IN', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     });
   },
 
-  // Format short currency (₹1.2K, ₹5L)
+  // Format short currency
   formatShortCurrency(amount) {
     const num = parseFloat(amount) || 0;
-    if (num >= 10000000) return '₹' + (num / 10000000).toFixed(1) + 'Cr';
-    if (num >= 100000) return '₹' + (num / 100000).toFixed(1) + 'L';
-    if (num >= 1000) return '₹' + (num / 1000).toFixed(1) + 'K';
-    return '₹' + num.toFixed(0);
+    if (num >= 10000000) return (num / 10000000).toFixed(1) + 'Cr';
+    if (num >= 100000) return (num / 100000).toFixed(1) + 'L';
+    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+    return num.toFixed(0);
   },
 
   // Format date

@@ -129,7 +129,7 @@ const Inventory = {
   _itemForm(item = null) {
     const isEdit = item !== null;
     return `
-      <form id="itemForm" onsubmit="Inventory.saveItem(event, ${isEdit ? `'${item.id}'` : 'null'})">
+      <form id="itemForm" autocomplete="off" onsubmit="Inventory.saveItem(event, ${isEdit ? `'${item.id}'` : 'null'})">
         <div class="form-group">
           <label class="form-label">Item Name *</label>
           <input type="text" class="form-input" name="name" required value="${isEdit ? Utils.escapeHtml(item.name) : ''}" placeholder="Enter item name">
@@ -146,11 +146,11 @@ const Inventory = {
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">Sale Price (₹) *</label>
+            <label class="form-label">Sale Price *</label>
             <input type="number" class="form-input" name="salePrice" required step="0.01" min="0" value="${isEdit ? item.salePrice : ''}" placeholder="0.00">
           </div>
           <div class="form-group">
-            <label class="form-label">Purchase Price (₹)</label>
+            <label class="form-label">Purchase Price</label>
             <input type="number" class="form-input" name="purchasePrice" step="0.01" min="0" value="${isEdit ? item.purchasePrice || '' : ''}" placeholder="0.00">
           </div>
         </div>

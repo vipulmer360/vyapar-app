@@ -17,7 +17,55 @@ const Accounts = {
     other: { label: 'Other', icon: '💰', color: '#64748b', gradient: 'linear-gradient(135deg, #334155, #64748b)' }
   },
 
+  getItemAmount(t) {
+    const a = parseFloat(t.amount);
+    if (!isNaN(a) && a !== 0) return Math.abs(a);
+    const p = parseFloat(t.price);
+    if (!isNaN(p) && p !== 0) return Math.abs(p);
+    return 0;
+  },
+
+  getAccountTransactions(accountId) {
+    const acc = DB.getById(DB.COLLECTIONS.ACCOUNTS, accountId);
+    if (!acc) return [];
+
+    const incomes = DB.getAll(DB.COLLECTIONS.INCOMES).map(i => ({ ...i, type: 'income' }));
+    const expenses = DB.getAll(DB.COLLECTIONS.EXPENSES).map(e => ({ ...e, type: 'expense' }));
+    const all = [...incomes, ...expenses];
+
+    const accNameLower = String(acc.name || '').trim().toLowerCase();
+
+    return all.filter(t => {
+      // Match by accountId (exact)
+      if (t.accountId && String(t.accountId) === String(accountId)) return true;
+      // Match by accountName (case-insensitive exact)
+      if (t.accountName && String(t.accountName).trim().toLowerCase() === accNameLower) return true;
+      return false;
+    });
+  },
+
+  getAccountBalance(accountId) {
+    const trans = this.getAccountTransactions(accountId);
+    const incSum = trans.filter(t => t.type === 'income').reduce((sum, t) => sum + this.getItemAmount(t), 0);
+    const expSum = trans.filter(t => t.type === 'expense').reduce((sum, t) => sum + this.getItemAmount(t), 0);
+    return incSum - expSum;
+  },
+
+  syncAccountBalances() {
+    const accounts = DB.getAll(DB.COLLECTIONS.ACCOUNTS);
+    const updatedAccounts = accounts.map(acc => {
+      return {
+        ...acc,
+        balance: this.getAccountBalance(acc.id)
+      };
+    });
+
+    localStorage.setItem(DB.COLLECTIONS.ACCOUNTS, JSON.stringify(updatedAccounts));
+    return updatedAccounts;
+  },
+
   render() {
+    this.syncAccountBalances();
     const accounts = DB.getAll(DB.COLLECTIONS.ACCOUNTS);
     const filtered = Utils.filterBySearch(accounts, this.searchTerm, ['name', 'type', 'bankName']);
 
@@ -43,7 +91,10 @@ const Accounts = {
                    oninput="Accounts.search(this.value)">
           </div>
         </div>
-        <div class="toolbar-right">
+        <div class="toolbar-right flex gap-2">
+          <button class="btn btn-outline btn-sm" onclick="App.undoLastAction()" title="Undo last action" style="color:var(--text-accent);border-color:var(--border);font-weight:700">
+            ↩️ Undo
+          </button>
           <button class="btn btn-primary" onclick="Accounts.openAddAccount()">
             ${Utils.icons.plus} Add Account
           </button>
@@ -63,31 +114,18 @@ const Accounts = {
             const preset = this.typePresets[acc.type] || this.typePresets.other;
             const stats = this._getAccountStats(acc.id);
             return `
-              <div class="account-card" style="background:${preset.gradient}">
+              <div class="account-card" style="background:${preset.gradient};cursor:pointer" onclick="Transactions.viewAccountLedger('${acc.id}')">
                 <div class="account-card-header">
                   <div class="account-card-icon">${preset.icon}</div>
                   <div class="account-card-actions">
-                    <button class="btn btn-ghost btn-icon" style="color:rgba(255,255,255,0.7)" onclick="Accounts.openEditAccount('${acc.id}')" title="Edit">${Utils.icons.edit}</button>
-                    <button class="btn btn-ghost btn-icon" style="color:rgba(255,255,255,0.7)" onclick="Accounts.deleteAccount('${acc.id}')" title="Delete">${Utils.icons.trash}</button>
+                    <button class="btn btn-ghost btn-icon" style="color:rgba(255,255,255,0.7)" onclick="event.stopPropagation(); Accounts.openEditAccount('${acc.id}')" title="Edit">${Utils.icons.edit}</button>
+                    <button class="btn btn-ghost btn-icon" style="color:rgba(255,255,255,0.7)" onclick="event.stopPropagation(); Accounts.deleteAccount('${acc.id}')" title="Delete">${Utils.icons.trash}</button>
                   </div>
                 </div>
                 <div class="account-card-name">${Utils.escapeHtml(acc.name)}</div>
                 <div class="account-card-type">${preset.label}${acc.bankName ? ' • ' + Utils.escapeHtml(acc.bankName) : ''}</div>
                 <div class="account-card-balance">${Utils.formatCurrency(acc.balance)}</div>
-                <div class="account-card-stats">
-                  <div class="account-stat">
-                    <span class="account-stat-label">Income</span>
-                    <span class="account-stat-value" style="color:#4ade80">${Utils.formatShortCurrency(stats.totalIncome)}</span>
-                  </div>
-                  <div class="account-stat">
-                    <span class="account-stat-label">Expense</span>
-                    <span class="account-stat-value" style="color:#f87171">${Utils.formatShortCurrency(stats.totalExpense)}</span>
-                  </div>
-                  <div class="account-stat">
-                    <span class="account-stat-label">Net</span>
-                    <span class="account-stat-value" style="color:${stats.net >= 0 ? '#4ade80' : '#f87171'}">${Utils.formatShortCurrency(stats.net)}</span>
-                  </div>
-                </div>
+
                 ${acc.accountNumber ? `<div class="account-card-number">•••• ${acc.accountNumber.slice(-4)}</div>` : ''}
               </div>
             `;
@@ -153,11 +191,10 @@ const Accounts = {
   },
 
   _getAccountStats(accountId) {
-    const incomes = DB.getAll(DB.COLLECTIONS.INCOMES).filter(i => i.accountId === accountId);
-    const expenses = DB.getAll(DB.COLLECTIONS.EXPENSES).filter(e => e.accountId === accountId);
-
-    const totalIncome = incomes.reduce((sum, i) => sum + Utils.parseNum(i.amount), 0);
-    const totalExpense = expenses.reduce((sum, e) => sum + Utils.parseNum(e.amount), 0);
+    const trans = this.getAccountTransactions(accountId);
+    
+    const totalIncome = trans.filter(t => t.type === 'income').reduce((sum, i) => sum + this.getItemAmount(i), 0);
+    const totalExpense = trans.filter(t => t.type === 'expense').reduce((sum, e) => sum + this.getItemAmount(e), 0);
 
     return {
       totalIncome,
@@ -179,7 +216,7 @@ const Accounts = {
   _accountForm(acc = null) {
     const isEdit = acc !== null;
     return `
-      <form id="accountForm" onsubmit="Accounts.saveAccount(event, ${isEdit ? `'${acc.id}'` : 'null'})">
+      <form id="accountForm" autocomplete="off" onsubmit="Accounts.saveAccount(event, ${isEdit ? `'${acc.id}'` : 'null'})">
         <div class="form-group">
           <label class="form-label">Account Name *</label>
           <input type="text" class="form-input" name="name" required value="${isEdit ? Utils.escapeHtml(acc.name) : ''}" placeholder="e.g. SBI Savings, Paytm Wallet, Cash">
@@ -194,7 +231,7 @@ const Accounts = {
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label">Opening Balance (₹)</label>
+            <label class="form-label">Opening Balance</label>
             <input type="number" class="form-input" name="balance" step="0.01" value="${isEdit ? acc.balance || 0 : '0'}" placeholder="0.00">
           </div>
         </div>
@@ -257,6 +294,7 @@ const Accounts = {
 
   // Render horizontal grid for Dashboard
   renderDashboardGrid() {
+    this.syncAccountBalances();
     const accounts = DB.getAll(DB.COLLECTIONS.ACCOUNTS);
     if (accounts.length === 0) {
       return `
@@ -274,27 +312,14 @@ const Accounts = {
           const preset = this.typePresets[acc.type] || this.typePresets.other;
           const stats = this._getAccountStats(acc.id);
           return `
-            <div class="account-scroll-card" style="background:${preset.gradient}">
+            <div class="account-scroll-card" style="background:${preset.gradient};cursor:pointer" onclick="Transactions.viewAccountLedger('${acc.id}')">
               <div class="account-scroll-header">
                 <span class="account-scroll-icon">${preset.icon}</span>
                 <span class="account-scroll-type">${preset.label}</span>
               </div>
               <div class="account-scroll-name">${Utils.escapeHtml(acc.name)}</div>
               <div class="account-scroll-balance">${Utils.formatCurrency(acc.balance)}</div>
-              <div class="account-scroll-stats">
-                <div>
-                  <div class="account-scroll-stat-label">Income</div>
-                  <div class="account-scroll-stat-value" style="color:#4ade80">${Utils.formatShortCurrency(stats.totalIncome)}</div>
-                </div>
-                <div>
-                  <div class="account-scroll-stat-label">Expense</div>
-                  <div class="account-scroll-stat-value" style="color:#f87171">${Utils.formatShortCurrency(stats.totalExpense)}</div>
-                </div>
-                <div>
-                  <div class="account-scroll-stat-label">Net</div>
-                  <div class="account-scroll-stat-value" style="color:${stats.net >= 0 ? '#4ade80' : '#f87171'}">${Utils.formatShortCurrency(stats.net)}</div>
-                </div>
-              </div>
+
             </div>
           `;
         }).join('')}

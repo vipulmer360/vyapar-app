@@ -119,7 +119,7 @@ const Payments = {
     const parties = type === 'in' ? DB.getParties('customer') : DB.getParties('supplier');
 
     App.showModal(type === 'in' ? '💰 Payment In (Received)' : '💸 Payment Out (Paid)', `
-      <form id="paymentForm" onsubmit="Payments.savePayment(event)">
+      <form id="paymentForm" autocomplete="off" onsubmit="Payments.savePayment(event)">
         <input type="hidden" name="type" value="${type}">
         <div class="form-row">
           <div class="form-group">
@@ -141,13 +141,13 @@ const Payments = {
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">Amount (₹) *</label>
+            <label class="form-label">Amount *</label>
             <input type="number" class="form-input" name="amount" required step="0.01" min="0.01" placeholder="0.00" style="font-size:1.2rem;font-weight:700">
           </div>
           <div class="form-group">
             <label class="form-label">Account / Method</label>
             <select class="form-select" name="accountId">
-              <option value="">Select Account (Optional)</option>
+              <option value="">Select Account</option>
               ${DB.getAll(DB.COLLECTIONS.ACCOUNTS).map(a => `<option value="${a.id}">${Utils.escapeHtml(a.name)} (${Utils.formatCurrency(a.balance)})</option>`).join('')}
             </select>
           </div>

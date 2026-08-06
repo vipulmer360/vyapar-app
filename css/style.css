@@ -117,6 +117,7 @@ html {
   font-size: 16px;
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
+  overflow-x: hidden;
 }
 
 body {
@@ -181,6 +182,8 @@ img {
 .app-container {
   display: flex;
   min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 /* ---------- Sidebar (Desktop) ---------- */
@@ -291,6 +294,7 @@ img {
 /* ---------- Main Content ---------- */
 .main-content {
   flex: 1;
+  min-width: 0;
   margin-left: var(--sidebar-width);
   min-height: 100vh;
 }
@@ -370,14 +374,13 @@ img {
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  padding: 8px 12px;
+  padding: 8px 2px;
   border-radius: var(--radius-sm);
   color: var(--text-muted);
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   font-weight: 500;
   transition: all var(--transition-fast);
   flex: 1;
-  max-width: 80px;
 }
 
 .bottom-nav-item.active {
@@ -670,6 +673,7 @@ img {
   overflow-x: auto;
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
+  max-width: 100%;
 }
 
 .data-table {
@@ -695,6 +699,7 @@ img {
   font-size: 0.875rem;
   border-bottom: 1px solid var(--border-light);
   color: var(--text-primary);
+  white-space: nowrap;
 }
 
 .data-table tr:last-child td {
@@ -1206,10 +1211,10 @@ img {
 
 @media (max-width: 768px) {
   html {
-    font-size: 14px;
+    font-size: 15px;
   }
 
-  .header {
+  .top-header {
     height: 52px;
     padding: 0 12px;
   }
@@ -1233,7 +1238,7 @@ img {
   }
 
   .hamburger {
-    display: flex;
+    display: none;
   }
 
   .bottom-nav {
@@ -1241,37 +1246,41 @@ img {
   }
 
   .page-content {
-    padding: 10px;
+    padding: 16px 14px;
+    width: 100%;
+    overflow-x: hidden;
   }
 
   .stat-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 8px;
     margin-bottom: 12px;
   }
 
   .stat-card {
-    padding: 10px 12px;
+    padding: 10px 8px;
+    text-align: center;
   }
 
   .stat-label {
-    font-size: 0.72rem;
+    font-size: 0.65rem;
+    margin-bottom: 4px;
   }
 
   .stat-value {
-    font-size: 1.15rem;
+    font-size: 0.95rem;
   }
 
   .btn {
-    padding: 7px 12px;
-    font-size: 0.8rem;
-    min-height: 34px;
+    padding: 10px 14px;
+    font-size: 0.85rem;
+    min-height: 40px;
   }
 
   .btn-sm {
-    padding: 5px 10px;
-    font-size: 0.75rem;
-    min-height: 28px;
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    min-height: 36px;
   }
 
   .form-row,
@@ -1324,35 +1333,61 @@ img {
 
   .data-table th,
   .data-table td {
-    padding: 8px 10px;
-    font-size: 0.78rem;
+    padding: 4px 6px;
+    font-size: 0.55rem;
+    vertical-align: middle;
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  .btn-icon {
+    width: 18px;
+    height: 18px;
+    padding: 0 !important;
+    min-height: 0 !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .btn-icon svg {
+    width: 10px;
+    height: 10px;
+  }
+
+  .badge {
+    background: transparent !important;
+    padding: 0 !important;
+    font-size: inherit;
+    font-weight: 600;
+    color: var(--accent-light) !important;
   }
 
   .date-card-header {
-    padding: 10px 12px;
-    gap: 6px;
+    padding: 4px 5px;
+    gap: 2px;
   }
 
   .date-card-title {
-    font-size: 0.85rem;
+    font-size: 0.55rem;
   }
 
   .date-card-stats {
-    font-size: 0.78rem;
-    gap: 8px;
+    font-size: 0.5rem;
+    gap: 4px;
   }
 
   .form-input,
   .form-select,
   .form-textarea {
-    padding: 8px 10px;
-    font-size: 0.85rem;
+    padding: 12px 14px;
+    font-size: 0.9rem;
   }
 }
 
 @media (max-width: 480px) {
   html {
-    font-size: 13.5px;
+    font-size: 14.5px;
   }
 
   .stat-grid {
@@ -1361,11 +1396,11 @@ img {
   }
 
   .stat-value {
-    font-size: 1.05rem;
+    font-size: 1.2rem;
   }
 
   .page-title {
-    font-size: 0.95rem;
+    font-size: 1.05rem;
   }
 }
 
@@ -1640,7 +1675,7 @@ img {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 160px;
+  min-height: 90px;
 }
 
 .account-scroll-add:hover {
@@ -2013,4 +2048,50 @@ img {
 
 .header-user-avatar:hover {
   transform: scale(1.1);
+}
+
+/* ===== Drag & Drop Reorder ===== */
+.drag-handle {
+  cursor: grab;
+  touch-action: none;
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  padding: 4px 6px;
+  user-select: none;
+  -webkit-user-select: none;
+  opacity: 0.5;
+  transition: opacity 0.2s, color 0.2s;
+  line-height: 1;
+}
+.drag-handle:hover, .drag-handle:active {
+  opacity: 1;
+  color: var(--accent-light);
+  cursor: grabbing;
+}
+tr.dragging {
+  opacity: 0.3;
+  background: var(--accent-glow) !important;
+}
+tr.drag-over-top {
+  box-shadow: 0 -2px 0 0 var(--accent) inset;
+}
+tr.drag-over-bottom {
+  box-shadow: 0 2px 0 0 var(--accent) inset;
+}
+.drag-ghost {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  background: var(--bg-card);
+  border: 2px solid var(--accent);
+  border-radius: var(--radius-sm);
+  padding: 8px 14px;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  max-width: 250px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
