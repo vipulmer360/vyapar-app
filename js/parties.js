@@ -285,10 +285,16 @@ const Parties = {
 
     const totalClearedAmount = clearedItems.reduce((sum, t) => sum + Utils.parseNum(t.price || t.amount), 0);
 
-    // Group cleared items by Payment Clearance Date
+    // Group cleared items by Payment Clearance Date (settlement date)
     const grouped = {};
     clearedItems.forEach(item => {
-      const payDate = item.clearedAt ? item.clearedAt.split('T')[0] : item.date;
+      let payDate = item.clearedAt ? item.clearedAt.split('T')[0] : item.date;
+      if (item.clearanceId) {
+        const settlement = DB.getById(DB.COLLECTIONS.EXPENSES, item.clearanceId) || DB.getById(DB.COLLECTIONS.INCOMES, item.clearanceId);
+        if (settlement && settlement.date) {
+          payDate = settlement.date;
+        }
+      }
       if (!grouped[payDate]) grouped[payDate] = [];
       grouped[payDate].push(item);
     });
