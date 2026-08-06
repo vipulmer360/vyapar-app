@@ -81,7 +81,7 @@ const Transactions = {
       const items = grouped[date];
       
       // For main transactions, exclude items without account or settlement entries from calculations
-      const calcItems = isPartyLedger ? items : items.filter(t => t.accountId && !t.isSettlement);
+      const calcItems = isPartyLedger ? items : items.filter(t => t.accountId && !t.isSettlement && t.status !== 'cleared');
 
       const dayIncomeAmount = calcItems.filter(t => t.type === 'income').reduce((sum, t) => sum + Accounts.getItemAmount(t), 0);
       const dayExpenseAmount = calcItems.filter(t => t.type === 'expense').reduce((sum, t) => sum + Accounts.getItemAmount(t), 0);
@@ -190,7 +190,7 @@ const Transactions = {
     }
 
     // Exclude no-account entries and settlement entries from global main transaction totals
-    const calcTrans = allTrans.filter(t => t.accountId && !t.isSettlement);
+    const calcTrans = allTrans.filter(t => t.accountId && !t.isSettlement && t.status !== 'cleared');
     const totalIncome = calcTrans.filter(t => t.type === 'income').reduce((sum, t) => sum + Accounts.getItemAmount(t), 0);
     const totalExpense = calcTrans.filter(t => t.type === 'expense').reduce((sum, t) => sum + Accounts.getItemAmount(t), 0);
     const parties = this.getParties();
