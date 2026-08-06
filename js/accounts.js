@@ -17,48 +17,14 @@ const Accounts = {
     other: { label: 'Other', icon: '💰', color: '#64748b', gradient: 'linear-gradient(135deg, #334155, #64748b)' }
   },
 
-  getItemAmount(t) {
-    if (t.amount !== undefined && t.amount !== null && t.amount !== '') {
-      const a = parseFloat(t.amount);
-      if (!isNaN(a)) return Math.abs(a);
-    }
-    const p = parseFloat(t.price);
-    if (!isNaN(p) && p !== 0) return Math.abs(p);
-    return 0;
-  },
 
-  getAccountTransactions(accountId) {
-    const acc = DB.getById(DB.COLLECTIONS.ACCOUNTS, accountId);
-    if (!acc) return [];
-
-    const incomes = DB.getAll(DB.COLLECTIONS.INCOMES).map(i => ({ ...i, type: 'income' }));
-    const expenses = DB.getAll(DB.COLLECTIONS.EXPENSES).map(e => ({ ...e, type: 'expense' }));
-    const all = [...incomes, ...expenses];
-
-    const accNameLower = String(acc.name || '').trim().toLowerCase();
-
-    return all.filter(t => {
-      // Match by accountId (exact)
-      if (t.accountId && String(t.accountId) === String(accountId)) return true;
-      // Match by accountName (case-insensitive exact)
-      if (t.accountName && String(t.accountName).trim().toLowerCase() === accNameLower) return true;
-      return false;
-    });
-  },
-
-  getAccountBalance(accountId) {
-    const trans = this.getAccountTransactions(accountId);
-    const incSum = trans.filter(t => t.type === 'income').reduce((sum, t) => sum + this.getItemAmount(t), 0);
-    const expSum = trans.filter(t => t.type === 'expense').reduce((sum, t) => sum + this.getItemAmount(t), 0);
-    return incSum - expSum;
-  },
 
   syncAccountBalances() {
     const accounts = DB.getAll(DB.COLLECTIONS.ACCOUNTS);
     const updatedAccounts = accounts.map(acc => {
       return {
         ...acc,
-        balance: this.getAccountBalance(acc.id)
+        balance: Calculations.getAccountBalance(acc.id)
       };
     });
 

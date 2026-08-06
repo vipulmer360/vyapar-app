@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vyapar-v80';
+const CACHE_NAME = 'vyapar-v81';
 const ASSETS = [
   './',
   './index.html',
@@ -12,8 +12,11 @@ const ASSETS = [
   './js/firebase-config.js',
   './js/auth.js',
   './js/sync.js',
-  './js/dashboard.js',
+  './js/calculations.js',
+  './js/income.js',
+  './js/expense.js',
   './js/accounts.js',
+  './js/dashboard.js',
   './js/transactions.js',
   './js/parties.js',
   './js/reports.js',
