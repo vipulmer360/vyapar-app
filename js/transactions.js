@@ -80,12 +80,15 @@ const Transactions = {
     return dates.map(date => {
       const items = grouped[date];
       
-      const dayIncomeAmount = items.filter(t => t.type === 'income').reduce((sum, t) => sum + Accounts.getItemAmount(t), 0);
-      const dayExpenseAmount = items.filter(t => t.type === 'expense').reduce((sum, t) => sum + Accounts.getItemAmount(t), 0);
+      // For main transactions, exclude items without account or settlement entries from calculations
+      const calcItems = isPartyLedger ? items : items.filter(t => t.accountId && !t.isSettlement);
+
+      const dayIncomeAmount = calcItems.filter(t => t.type === 'income').reduce((sum, t) => sum + Accounts.getItemAmount(t), 0);
+      const dayExpenseAmount = calcItems.filter(t => t.type === 'expense').reduce((sum, t) => sum + Accounts.getItemAmount(t), 0);
       const dayTotalAmount = dayIncomeAmount - dayExpenseAmount;
 
-      const dayIncomePrice = items.filter(t => t.type === 'income').reduce((sum, t) => sum + Utils.parseNum(t.price || 0), 0);
-      const dayExpensePrice = items.filter(t => t.type === 'expense').reduce((sum, t) => sum + Utils.parseNum(t.price || 0), 0);
+      const dayIncomePrice = calcItems.filter(t => t.type === 'income').reduce((sum, t) => sum + Utils.parseNum(t.price || 0), 0);
+      const dayExpensePrice = calcItems.filter(t => t.type === 'expense').reduce((sum, t) => sum + Utils.parseNum(t.price || 0), 0);
       const dayTotalPrice = dayIncomePrice - dayExpensePrice;
 
       const dayProfitLoss = dayTotalAmount - dayTotalPrice;
@@ -186,8 +189,10 @@ const Transactions = {
       filtered = Accounts.getAccountTransactions(this.accountFilter);
     }
 
-    const totalIncome = allTrans.filter(t => t.type === 'income').reduce((sum, t) => sum + Accounts.getItemAmount(t), 0);
-    const totalExpense = allTrans.filter(t => t.type === 'expense').reduce((sum, t) => sum + Accounts.getItemAmount(t), 0);
+    // Exclude no-account entries and settlement entries from global main transaction totals
+    const calcTrans = allTrans.filter(t => t.accountId && !t.isSettlement);
+    const totalIncome = calcTrans.filter(t => t.type === 'income').reduce((sum, t) => sum + Accounts.getItemAmount(t), 0);
+    const totalExpense = calcTrans.filter(t => t.type === 'expense').reduce((sum, t) => sum + Accounts.getItemAmount(t), 0);
     const parties = this.getParties();
 
     return `
