@@ -700,6 +700,7 @@ img {
   border-bottom: 1px solid var(--border-light);
   color: var(--text-primary);
   white-space: nowrap;
+  vertical-align: middle;
 }
 
 .data-table tr:last-child td {
@@ -1333,11 +1334,12 @@ img {
 
   .data-table th,
   .data-table td {
-    padding: 4px 6px;
+    padding: 6px 4px;
     font-size: 0.55rem;
-    vertical-align: middle;
+    vertical-align: top;
     white-space: normal;
     word-break: break-word;
+    line-height: 1.3;
   }
 
   .btn-icon {

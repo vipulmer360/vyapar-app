@@ -68,7 +68,11 @@ const Transactions = {
 
     // Sort items within each date by sortOrder
     Object.keys(grouped).forEach(date => {
-      grouped[date].sort((a, b) => (a.sortOrder || 9999) - (b.sortOrder || 9999));
+      grouped[date].sort((a, b) => {
+        const orderA = a.sortOrder !== undefined ? a.sortOrder : 9999;
+        const orderB = b.sortOrder !== undefined ? b.sortOrder : 9999;
+        return orderA - orderB;
+      });
     });
 
     const dates = Object.keys(grouped).sort((a, b) => new Date(b) - new Date(a));
