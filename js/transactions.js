@@ -147,9 +147,9 @@ const Transactions = {
                       </td>
                       ${!isPartyLedger ? `
                         <td>${this.formatPartyCell(t.party)}</td>
-                        <td><span class="badge badge-accent">${Utils.escapeHtml(acc?.name || t.accountName || 'Cash')}</span></td>
+                        <td><span class="badge badge-accent">${Utils.escapeHtml(acc?.name || t.accountName || '-')}</span></td>
                         <td class="text-right">
-                          <span class="amount ${isInc ? 'credit' : 'debit'}">${isInc ? '+' : '-'}${Utils.formatCurrency(t.amount)}</span>
+                          ${parseFloat(t.amount) ? `<span class="amount ${isInc ? 'credit' : 'debit'}">${isInc ? '+' : '-'}${Utils.formatCurrency(t.amount)}</span>` : '<span class="text-muted">-</span>'}
                         </td>
                       ` : ''}
                       <td class="text-right" style="color:var(--accent-light)">${(t.price && parseFloat(t.price) > 0) ? Utils.formatCurrency(t.price) : '-'}</td>
@@ -486,14 +486,13 @@ const Transactions = {
     const targetCollection = isNewIncome ? DB.COLLECTIONS.INCOMES : DB.COLLECTIONS.EXPENSES;
 
     const rawAccount = form.get('accountId');
-    const defaultAccounts = DB.getAll(DB.COLLECTIONS.ACCOUNTS);
-    const accountId = rawAccount && rawAccount.trim() !== '' ? rawAccount : (defaultAccounts[0] ? defaultAccounts[0].id : '');
+    const accountId = rawAccount && rawAccount.trim() !== '' ? rawAccount : '';
 
     const rawPrice = form.get('price');
     const price = rawPrice !== null && rawPrice.trim() !== '' ? (parseFloat(rawPrice) || 0) : 0;
 
     const rawAmount = form.get('amount');
-    const amount = rawAmount !== null && rawAmount.trim() !== '' ? (parseFloat(rawAmount) || price) : price;
+    const amount = rawAmount !== null && rawAmount.trim() !== '' ? (parseFloat(rawAmount) || 0) : 0;
 
     const rawItem = form.get('itemName');
     const itemName = rawItem && rawItem.trim() !== '' ? rawItem.trim() : 'General Item';
@@ -535,7 +534,7 @@ const Transactions = {
         date: form.get('date') || Utils.today(),
         party: partyName,
         accountId,
-        accountName: account ? account.name : 'Cash',
+        accountName: account ? account.name : '',
         notes: form.get('notes'),
         isPartyOnly
       };
@@ -568,7 +567,7 @@ const Transactions = {
         date: form.get('date') || Utils.today(),
         party: partyName,
         accountId,
-        accountName: account ? account.name : 'Cash',
+        accountName: account ? account.name : '',
         notes: form.get('notes'),
         isPartyOnly
       };

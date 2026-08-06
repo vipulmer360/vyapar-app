@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vyapar-v76';
+const CACHE_NAME = 'vyapar-v78';
 const ASSETS = [
   './',
   './index.html',

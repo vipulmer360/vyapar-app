@@ -357,7 +357,7 @@ const Parties = {
                           ${Utils.escapeHtml(t.itemName || 'Cleared Item')}
                           ${t.isPartyOnly ? `<span class="badge badge-accent" style="font-size:0.65rem;margin-left:4px" title="Visible only in Party Ledger">🔒 Party Only</span>` : ''}
                         </td>
-                        <td><span class="badge badge-accent">${Utils.escapeHtml(acc?.name || t.accountName || 'Cash')}</span></td>
+                        <td><span class="badge badge-accent">${Utils.escapeHtml(acc?.name || t.accountName || '-')}</span></td>
                         <td class="text-center">${Utils.escapeHtml(t.notes || '-')}</td>
                         <td class="text-center text-success" style="font-weight:600">${Utils.formatCurrency(t.price || t.amount)}</td>
                         <td>

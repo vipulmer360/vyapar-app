@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Force Update & Debug</title>
+<style>
+body { background:#0f172a; color:#e2e8f0; font-family:sans-serif; padding:20px; }
+.btn { background:#4ade80; color:#0f172a; border:none; padding:15px 30px; font-size:18px; font-weight:bold; cursor:pointer; border-radius:8px; display:block; margin-bottom:20px; }
+</style>
+</head>
+<body>
+<h2>Vyapar App - Force Update Tool</h2>
+<button class="btn" onclick="forceUpdate()">🚀 Click Here to Force Update to v76</button>
+<p id="status"></p>
+
+<script>
+function forceUpdate() {
+  const status = document.getElementById('status');
+  status.textContent = 'Updating... Please wait...';
+  
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(function(registrations) {
+      for(let registration of registrations) {
+        registration.unregister();
+      }
+      
+      // Also clear all caches
+      caches.keys().then(function(names) {
+        for (let name of names) {
+          caches.delete(name);
+        }
+        
+        status.innerHTML = '<span style="color:#4ade80">✅ Update Successful! Redirecting to App...</span>';
+        setTimeout(() => {
+          window.location.href = 'index.html';
+        }, 1500);
+      });
+    });
+  } else {
+    status.textContent = 'Service Worker not found. Redirecting...';
+    setTimeout(() => {
+      window.location.href = 'index.html';
+    }, 1000);
+  }
+}
+</script>
+</body>
+</html>

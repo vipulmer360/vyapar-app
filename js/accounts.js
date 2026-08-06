@@ -18,8 +18,10 @@ const Accounts = {
   },
 
   getItemAmount(t) {
-    const a = parseFloat(t.amount);
-    if (!isNaN(a) && a !== 0) return Math.abs(a);
+    if (t.amount !== undefined && t.amount !== null && t.amount !== '') {
+      const a = parseFloat(t.amount);
+      if (!isNaN(a)) return Math.abs(a);
+    }
     const p = parseFloat(t.price);
     if (!isNaN(p) && p !== 0) return Math.abs(p);
     return 0;
