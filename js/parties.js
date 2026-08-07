@@ -63,13 +63,12 @@ const Parties = {
       totalClearedPaid += details.amount;
     });
 
-    const pendingTotalPrice = totalExpensePrice > 0 ? totalExpensePrice : totalIncomePrice;
-
     return {
       totalIncome: totalIncomePrice,
       totalExpense: totalExpensePrice,
       net: totalIncomePrice - totalExpensePrice,
-      totalPrice: pendingTotalPrice,
+      totalPrice: Math.abs(totalIncomePrice - totalExpensePrice),
+      isReceivable: totalIncomePrice > totalExpensePrice,
       totalClearedPaid,
       pendingCount: pendingTrans.length,
       clearedCount: clearedTrans.length,
@@ -188,8 +187,8 @@ const Parties = {
             ↩️ Undo
           </button>
           <div style="font-size:1.05rem;font-weight:700;padding:6px 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);display:flex;align-items:center;gap:6px">
-            <span>Pending Due Total:</span>
-            <strong class="text-danger">${Utils.formatCurrency(stats.totalPrice)}</strong>
+            <span>Net Pending ${stats.isReceivable ? 'Receivable' : 'Due'}:</span>
+            <strong class="${stats.isReceivable ? 'text-success' : 'text-danger'}">${Utils.formatCurrency(stats.totalPrice)}</strong>
           </div>
           <button class="btn btn-success btn-sm" onclick="Transactions.openAddModal('income', '${Utils.escapeHtml(partyName)}')">
             💵 Add Income
@@ -419,18 +418,39 @@ const Parties = {
 
   updateClearanceBar() {
     const checkboxes = document.querySelectorAll('.pending-chk:checked');
-    let total = 0;
+    let totalExpense = 0;
+    let totalIncome = 0;
     checkboxes.forEach(chk => {
-      total += parseFloat(chk.getAttribute('data-price')) || 0;
+      const type = chk.getAttribute('data-type');
+      const price = parseFloat(chk.getAttribute('data-price')) || 0;
+      if (type === 'income') totalIncome += price;
+      else totalExpense += price;
     });
+
+    const netAmount = totalExpense - totalIncome;
+    const isReceivable = netAmount < 0;
+    const absAmount = Math.abs(netAmount);
 
     const countText = document.getElementById('selectedCountText');
     const totalText = document.getElementById('selectedTotalText');
     const submitBtn = document.getElementById('clearanceSubmitBtn');
 
     if (countText) countText.textContent = `${checkboxes.length} Bill${checkboxes.length === 1 ? '' : 's'} Selected`;
-    if (totalText) totalText.textContent = `Total Payable: ${Utils.formatCurrency(total)}`;
-    if (submitBtn) submitBtn.disabled = checkboxes.length === 0;
+    if (totalText) {
+      if (netAmount === 0 && checkboxes.length > 0) {
+        totalText.innerHTML = `Net Settled: <span class="text-success">0.00</span>`;
+      } else {
+        totalText.innerHTML = `Net ${isReceivable ? 'Receivable' : 'Payable'}: <span class="${isReceivable ? 'text-success' : 'text-danger'}">${Utils.formatCurrency(absAmount)}</span>`;
+      }
+    }
+    if (submitBtn) {
+      submitBtn.disabled = checkboxes.length === 0;
+      if (netAmount === 0 && checkboxes.length > 0) {
+        submitBtn.innerHTML = `✅ Clear Bills (No Payment)`;
+      } else {
+        submitBtn.innerHTML = `💳 ${isReceivable ? 'Receive' : 'Pay'} & Clear`;
+      }
+    }
   },
 
   processClearance(partyName) {
@@ -457,35 +477,55 @@ const Parties = {
       return;
     }
 
-    let totalAmount = 0;
+    let totalExpense = 0;
+    let totalIncome = 0;
     const selectedItems = [];
 
     checkboxes.forEach(chk => {
-      const type = chk.getAttribute('data-parent-type') || chk.getAttribute('data-type') || 'expense';
+      const parentType = chk.getAttribute('data-parent-type') || chk.getAttribute('data-type') || 'expense';
+      const roleType = chk.getAttribute('data-type');
       const id = chk.getAttribute('data-id');
       const price = parseFloat(chk.getAttribute('data-price')) || 0;
-      totalAmount += price;
-      selectedItems.push({ type, id, price });
+      
+      if (roleType === 'income') totalIncome += price;
+      else totalExpense += price;
+      
+      selectedItems.push({ type: parentType, id, price });
     });
 
-    // Create ONE SINGLE Expense Group Settlement entry (Paisa chukaya = Expense = -Amount)
-    const expSettlement = {
-      itemName: `Bill ${partyName}`,
-      amount: totalAmount,
-      price: 0,
-      date,
-      party: partyName,
-      accountId,
-      accountName: account.name,
-      notes: `${account.name}`,
-      isPartyOnly: false,
-      isSettlement: true,
-      status: 'cleared',
-      type: 'expense'
-    };
+    const netAmount = totalExpense - totalIncome;
+    const isReceivable = netAmount < 0;
+    const absAmount = Math.abs(netAmount);
 
-    const expSettlementRes = DB.add(DB.COLLECTIONS.EXPENSES, expSettlement);
-    const expSettlementId = expSettlementRes ? expSettlementRes.id : null;
+    let settlementId = null;
+
+    if (absAmount > 0) {
+      const collection = isReceivable ? DB.COLLECTIONS.INCOMES : DB.COLLECTIONS.EXPENSES;
+      const typeStr = isReceivable ? 'income' : 'expense';
+
+      const settlement = {
+        itemName: `Bill ${partyName}`,
+        amount: absAmount,
+        price: 0,
+        date,
+        party: partyName,
+        accountId,
+        accountName: account.name,
+        notes: `${account.name}`,
+        isPartyOnly: false,
+        isSettlement: true,
+        status: 'cleared',
+        type: typeStr
+      };
+
+      const settlementRes = DB.add(collection, settlement);
+      settlementId = settlementRes ? settlementRes.id : null;
+
+      const newBalance = isReceivable 
+        ? Utils.parseNum(account.balance) + absAmount
+        : Utils.parseNum(account.balance) - absAmount;
+      DB.update(DB.COLLECTIONS.ACCOUNTS, accountId, { balance: newBalance });
+    }
 
     selectedItems.forEach(item => {
       const collection = item.type === 'income' ? DB.COLLECTIONS.INCOMES : DB.COLLECTIONS.EXPENSES;
@@ -515,22 +555,18 @@ const Parties = {
         DB.update(collection, item.id, {
           status: allCleared ? 'cleared' : (t.status || 'pending'),
           clearedParties: clearedParties,
-          clearanceId: expSettlementId,
+          clearanceId: settlementId,
           clearedAt: new Date().toISOString()
         });
       }
     });
 
-    // Subtract total paid from account balance
-    const newBalance = Utils.parseNum(account.balance) - totalAmount;
-    DB.update(DB.COLLECTIONS.ACCOUNTS, accountId, { balance: newBalance });
-
-    App.toast(`Successfully paid & cleared ${Utils.formatCurrency(totalAmount)}! 💳`, 'success');
+    App.toast(absAmount > 0 ? `Successfully ${isReceivable ? 'received' : 'paid'} & cleared ${Utils.formatCurrency(absAmount)}! 💳` : 'Successfully cleared bills (Net Zero)', 'success');
     App.refreshPage();
   },
 
   revertSingleBillClearance(id, type) {
-    if (!confirm('Return this bill to Pending? Paid amount will be refunded to your account.')) return;
+    if (!confirm('Return to Pending? If this was paid with other bills, the ENTIRE group payment will be cancelled and refunded.')) return;
 
     const collection = type === 'income' ? DB.COLLECTIONS.INCOMES : DB.COLLECTIONS.EXPENSES;
     const record = DB.getById(collection, id);
@@ -540,73 +576,51 @@ const Parties = {
       return;
     }
 
-    const itemAmount = Utils.parseNum(record.price || record.amount);
-
-    // Get the settlement record FIRST to find the actual payment account and amount
-    let settlement = null;
-    if (record.clearanceId) {
-      settlement = DB.getById(DB.COLLECTIONS.EXPENSES, record.clearanceId);
-      if (!settlement) {
-        settlement = DB.getById(DB.COLLECTIONS.INCOMES, record.clearanceId);
-      }
-    }
-
-    const paymentAccountId = settlement ? settlement.accountId : record.accountId;
-
-    // Save state to App.lastAction for Undo
-    App.lastAction = {
-      type: 'revert_clearance',
-      data: {
-        billCollection: collection,
-        billId: id,
-        settlementCollection: settlement ? (settlement.type === 'income' ? DB.COLLECTIONS.INCOMES : DB.COLLECTIONS.EXPENSES) : DB.COLLECTIONS.EXPENSES,
-        settlementId: record.clearanceId,
-        settlementRecord: settlement ? JSON.parse(JSON.stringify(settlement)) : null,
-        paymentAccountId,
-        itemAmount,
-        isIncome: type === 'income'
-      }
-    };
-
-    // Refund paid money back into account (+itemAmount)
-    if (paymentAccountId) {
-      const account = DB.getById(DB.COLLECTIONS.ACCOUNTS, paymentAccountId);
-      if (account) {
-        DB.update(DB.COLLECTIONS.ACCOUNTS, paymentAccountId, {
-          balance: Utils.parseNum(account.balance) + itemAmount
-        });
-      }
-    }
-
-    // Adjust or delete the expense settlement receipt
-    if (settlement) {
-      const setCol = settlement.type === 'income' ? DB.COLLECTIONS.INCOMES : DB.COLLECTIONS.EXPENSES;
-      const newAmount = Utils.parseNum(settlement.amount) - itemAmount;
-      if (newAmount <= 0.01) {
-        DB.delete(setCol, record.clearanceId);
-      } else {
-        DB.update(setCol, record.clearanceId, { amount: newAmount, price: 0 });
-      }
-    }
-
     const partyName = Parties.activeLedgerParty;
-    let clearedParties = record.clearedParties ? [...record.clearedParties] : [];
-    
-    if (partyName) {
-      clearedParties = clearedParties.filter(p => p !== partyName);
-    } else {
-      clearedParties = [];
+
+    if (!record.clearanceId) {
+      let clearedParties = record.clearedParties ? [...record.clearedParties] : [];
+      if (partyName) clearedParties = clearedParties.filter(p => p !== partyName);
+      DB.update(collection, id, { status: 'pending', clearedParties });
+      App.toast('Returned to pending', 'success');
+      App.refreshPage();
+      return;
     }
 
-    // Reset original item status to pending, and update clearedParties array
-    DB.update(collection, id, { 
-      status: 'pending', 
-      clearedParties: clearedParties,
-      clearanceId: clearedParties.length === 0 ? null : record.clearanceId, 
-      clearedAt: clearedParties.length === 0 ? null : record.clearedAt 
+    const clearanceId = record.clearanceId;
+    const settlement = DB.getById(DB.COLLECTIONS.EXPENSES, clearanceId) || DB.getById(DB.COLLECTIONS.INCOMES, clearanceId);
+
+    // Refund settlement amount to account
+    if (settlement && settlement.accountId) {
+      const account = DB.getById(DB.COLLECTIONS.ACCOUNTS, settlement.accountId);
+      if (account) {
+        const isIncome = settlement.type === 'income';
+        let newBalance = Utils.parseNum(account.balance);
+        if (isIncome) newBalance -= Utils.parseNum(settlement.amount);
+        else newBalance += Utils.parseNum(settlement.amount);
+        DB.update(DB.COLLECTIONS.ACCOUNTS, settlement.accountId, { balance: newBalance });
+      }
+      
+      const setCol = settlement.type === 'income' ? DB.COLLECTIONS.INCOMES : DB.COLLECTIONS.EXPENSES;
+      DB.delete(setCol, clearanceId);
+    }
+
+    // Return ALL transactions that share this clearanceId to pending for this party
+    [DB.COLLECTIONS.INCOMES, DB.COLLECTIONS.EXPENSES].forEach(col => {
+      const items = DB.getAll(col).filter(i => i.clearanceId === clearanceId);
+      items.forEach(i => {
+        let clearedParties = i.clearedParties ? [...i.clearedParties] : [];
+        if (partyName) clearedParties = clearedParties.filter(p => p !== partyName);
+        DB.update(col, i.id, {
+          status: clearedParties.length > 0 ? 'cleared' : 'pending',
+          clearedParties: clearedParties,
+          clearanceId: clearedParties.length > 0 ? i.clearanceId : null,
+          clearedAt: clearedParties.length > 0 ? i.clearedAt : null
+        });
+      });
     });
 
-    App.toast(`Bill returned to Pending! <button class="btn btn-sm btn-outline" onclick="App.undoLastAction()" style="margin-left:8px;padding:2px 6px;font-size:0.75rem;color:var(--accent-light)">↩️ Undo</button>`, 'warning', 6500);
+    App.toast(`Group payment cancelled & bills returned to Pending!`, 'warning');
     App.refreshPage();
   },
 

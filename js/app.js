@@ -265,7 +265,7 @@ const App = {
             <div class="fab-btn-small" style="background:var(--danger)">💸</div>
           </div>
         </div>
-        <button class="fab-btn" onclick="App.toggleFab()">
+        <button class="fab-btn" id="fabBtnMain">
           ${Utils.icons.plus}
         </button>
       </div>
@@ -287,6 +287,86 @@ const App = {
       <!-- Print Invoice Area -->
       <div class="print-invoice" id="printInvoice"></div>
     `;
+    
+    // Initialize drag logic for the FAB after it's added to DOM
+    setTimeout(() => this.initFabDrag(), 0);
+  },
+
+  // Initialize FAB Dragging logic
+  initFabDrag() {
+    const fab = document.getElementById('fabContainer');
+    const fabBtn = document.getElementById('fabBtnMain');
+    if (!fab || !fabBtn) return;
+
+    let isDragging = false;
+    let hasMoved = false;
+    let startX, startY;
+    let initialRight, initialBottom;
+
+    const dragStart = (e) => {
+      if (e.target.closest('.fab-menu')) return;
+      
+      const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+      const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+      
+      isDragging = true;
+      hasMoved = false;
+      startX = clientX;
+      startY = clientY;
+      
+      const rect = fab.getBoundingClientRect();
+      initialRight = window.innerWidth - rect.right;
+      initialBottom = window.innerHeight - rect.bottom;
+
+      fab.style.transition = 'none';
+    };
+
+    const dragMove = (e) => {
+      if (!isDragging) return;
+      
+      const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+      const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+      
+      const deltaX = startX - clientX;
+      const deltaY = startY - clientY;
+
+      if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
+        hasMoved = true;
+      }
+      
+      if (hasMoved) {
+        if (e.cancelable) e.preventDefault();
+        
+        let newRight = initialRight + deltaX;
+        let newBottom = initialBottom + deltaY;
+
+        newRight = Math.max(16, Math.min(newRight, window.innerWidth - fab.offsetWidth - 16));
+        newBottom = Math.max(16, Math.min(newBottom, window.innerHeight - fab.offsetHeight - 80));
+
+        fab.style.right = `${newRight}px`;
+        fab.style.bottom = `${newBottom}px`;
+      }
+    };
+
+    const dragEnd = (e) => {
+      if (!isDragging) return;
+      isDragging = false;
+      fab.style.transition = '';
+    };
+
+    fabBtn.addEventListener('click', (e) => {
+      if (!hasMoved) {
+        App.toggleFab();
+      }
+    });
+
+    fab.addEventListener('mousedown', dragStart);
+    document.addEventListener('mousemove', dragMove, { passive: false });
+    document.addEventListener('mouseup', dragEnd);
+
+    fab.addEventListener('touchstart', dragStart, { passive: false });
+    document.addEventListener('touchmove', dragMove, { passive: false });
+    document.addEventListener('touchend', dragEnd);
   },
 
   // Toggle Dark/Light Theme
