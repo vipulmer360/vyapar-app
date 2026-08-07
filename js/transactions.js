@@ -7,6 +7,14 @@ const Transactions = {
   searchTerm: '',
   partyFilter: '',
   accountFilter: '', // NEW: Filter by account
+  sortOrder: localStorage.getItem('vyapar_sort_order') || 'desc', // 'desc' (Newest First) or 'asc' (Oldest First)
+
+  toggleSortOrder() {
+    this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
+    localStorage.setItem('vyapar_sort_order', this.sortOrder);
+    App.toast(`Sorted by ${this.sortOrder === 'asc' ? 'Oldest First ⬆️' : 'Newest First ⬇️'}`, 'info');
+    App.refreshPage();
+  },
 
   viewAccountLedger(accountId) {
     this.accountFilter = accountId;
@@ -69,18 +77,27 @@ const Transactions = {
     // Sort items within each date by sortOrder
     Object.keys(grouped).forEach(date => {
       grouped[date].sort((a, b) => {
-        const orderA = a.sortOrder !== undefined ? a.sortOrder : 9999;
-        const orderB = b.sortOrder !== undefined ? b.sortOrder : 9999;
+        const orderA = a.sortOrder !== undefined ? a.sortOrder : -1;
+        const orderB = b.sortOrder !== undefined ? b.sortOrder : -1;
+        
+        if (orderA === orderB) {
+           return (b.createdAt || '').localeCompare(a.createdAt || '');
+        }
         return orderA - orderB;
       });
     });
 
-    const dates = Object.keys(grouped).sort((a, b) => new Date(b) - new Date(a));
+    const isAsc = this.sortOrder === 'asc';
+    const dates = Object.keys(grouped).sort((a, b) => isAsc ? new Date(a) - new Date(b) : new Date(b) - new Date(a));
 
     return dates.map(date => {
       const items = grouped[date];
       
-      const totals = Calculations.getDayTotals(items, isPartyLedger);
+      const totals = Calculations.getDayTotals(items, { 
+        isPartyLedger, 
+        accountId: Transactions.accountFilter,
+        partyName: options.partyName 
+      });
 
       return `
         <div class="date-group-card">
@@ -92,15 +109,15 @@ const Transactions = {
             <div class="date-card-stats">
               ${!isPartyLedger ? `
                 <div class="date-stat-pill">
-                  <span>Amount:</span>
-                  <strong class="${totals.dayTotalAmount >= 0 ? 'text-success' : 'text-danger'}">${Utils.formatCurrency(totals.dayTotalAmount)}</strong>
+                  <span>Revenue:</span>
+                  <strong class="text-success">${Utils.formatCurrency(totals.dayRevenue)}</strong>
                 </div>
                 <div class="date-stat-pill">
-                  <span>Price:</span>
-                  <strong style="color:var(--accent-light)">${Utils.formatCurrency(totals.dayTotalPrice)}</strong>
+                  <span>Cost:</span>
+                  <strong class="text-danger">${Utils.formatCurrency(totals.dayCost)}</strong>
                 </div>
                 <div class="date-stat-pill">
-                  <span>Total:</span>
+                  <span>Profit:</span>
                   <strong class="${totals.dayProfitLoss >= 0 ? 'text-success' : 'text-danger'}">${Utils.formatCurrency(totals.dayProfitLoss)}</strong>
                 </div>
               ` : `
@@ -117,39 +134,79 @@ const Transactions = {
               <thead>
                 <tr>
                   <th style="width:30px"></th>
-                  <th>Item Name</th>
-                  ${!isPartyLedger ? `<th>Party</th><th>Account</th><th class="text-right">Amount</th>` : ''}
-                  <th class="text-right">Price</th>
-                  <th>Notes</th>
-                  <th class="text-right">Actions</th>
+                  <th class="text-center">Item Name</th>
+                  ${!isPartyLedger ? `<th class="text-center">Party</th><th class="text-center">Account</th><th class="text-center">Acc Amount</th>` : ''}
+                  <th class="text-center">Party Amount</th>
+                  <th class="text-center">Notes</th>
+                  <th class="text-center">Actions</th>
                 </tr>
               </thead>
               <tbody data-date="${date}">
                 ${items.map((t, idx) => {
-                  const acc = DB.getById(DB.COLLECTIONS.ACCOUNTS, t.accountId);
-                  const isInc = t.type === 'income';
+                  let accDisplay = '-';
+                  if (t.accounts && t.accounts.length > 0) {
+                     accDisplay = t.accounts.map(a => DB.getById(DB.COLLECTIONS.ACCOUNTS, a.accountId)?.name || a.accountName).join(', ');
+                  } else if (t.accountId) {
+                     const acc = DB.getById(DB.COLLECTIONS.ACCOUNTS, t.accountId);
+                     accDisplay = acc ? acc.name : (t.accountName || '-');
+                  }
+
+                  let partyDisplay = '-';
+                  let mathNotes = '';
+                  if (t.parties && t.parties.length > 0) {
+                     partyDisplay = this.formatPartyCell(t.parties[0].partyName);
+                     if (t.parties.length > 1) {
+                        partyDisplay += ` <span style="font-size:0.75em;color:var(--text-muted)">(+${t.parties.length - 1})</span>`;
+                        const amounts = t.parties.map(p => parseFloat(p.amount) || 0);
+                        mathNotes = `<div style="font-size:0.85em;color:var(--accent-light);margin-top:2px;font-weight:600">[${amounts.join(' + ')}]</div>`;
+                     }
+                  } else {
+                     partyDisplay = this.formatPartyCell(t.party);
+                  }
+                  
+                  let displayAmount = parseFloat(t.amount) || 0;
+                  let isInc = t.type === 'income';
+                  
+                  if (Transactions.accountFilter) {
+                    const details = Calculations.getAccountDetails(t, Transactions.accountFilter);
+                    displayAmount = details.amount;
+                    isInc = details.type === 'income';
+                  }
+
+                  let partyDisplayAmount = parseFloat(t.price) || 0;
+                  
+                  if (t.parties && t.parties.length > 0) {
+                     partyDisplayAmount = t.parties.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+                  }
+                  
+                  if (Transactions.partyFilter) {
+                    partyDisplayAmount = Calculations.getPartyDetails(t, Transactions.partyFilter).amount;
+                  }
+
+                  let notesHtml = t.notes ? Utils.escapeHtml(t.notes) : (mathNotes ? '' : '-');
+
                   return `
                     <tr data-id="${t.id}" data-type="${t.type}" data-idx="${idx}">
-                      <td style="width:30px;padding:4px">
+                      <td class="text-center" style="width:30px;padding:4px">
                         <span class="drag-handle" title="Drag to reorder">⋮⋮</span>
                       </td>
-                      <td>
+                      <td class="text-center">
                         ${Utils.escapeHtml(t.itemName || 'General Item')}
-                        ${t.isPartyOnly ? `<span class="badge badge-accent" style="font-size:0.65rem;margin-left:4px" title="Visible only in Party Ledger">🔒 Party Only</span>` : ''}
+                        ${t.isPartyOnly ? `<span title="Hidden from Main Transactions" style="cursor:help;margin-left:4px;font-size:1.1em">👁️</span>` : ''}
                       </td>
                       ${!isPartyLedger ? `
-                        <td>${this.formatPartyCell(t.party)}</td>
-                        <td><span class="badge badge-accent">${Utils.escapeHtml(acc?.name || t.accountName || '-')}</span></td>
-                        <td class="text-right">
-                          ${parseFloat(t.amount) ? `<span class="amount ${isInc ? 'credit' : 'debit'}">${isInc ? '+' : '-'}${Utils.formatCurrency(t.amount)}</span>` : '<span class="text-muted">-</span>'}
+                        <td class="text-center">${partyDisplay}</td>
+                        <td class="text-center"><span class="badge badge-accent" style="font-size:0.45rem; font-weight:normal">${Utils.escapeHtml(accDisplay)}</span></td>
+                        <td class="text-center">
+                          ${displayAmount ? `<span class="amount ${isInc ? 'credit' : 'debit'}">${isInc ? '+' : '-'}${Utils.formatCurrency(displayAmount)}</span>` : '<span class="text-muted">-</span>'}
                         </td>
                       ` : ''}
-                      <td class="text-right" style="color:var(--accent-light)">${(t.price && parseFloat(t.price) > 0) ? Utils.formatCurrency(t.price) : '-'}</td>
-                      <td>${Utils.escapeHtml(t.notes || '-')}</td>
-                      <td>
-                        <div class="table-actions">
+                      <td class="text-center" style="color:var(--accent-light)">${partyDisplayAmount ? Utils.formatCurrency(partyDisplayAmount) : '-'}</td>
+                      <td class="text-center">${notesHtml}${mathNotes}</td>
+                      <td class="text-center">
+                        <div class="table-actions" style="justify-content:center">
                           <button class="btn btn-ghost btn-icon" onclick="Transactions.openEditModal('${t.type}', '${t.id}')" title="Edit">${Utils.icons.edit}</button>
-                          <button class="btn btn-ghost btn-icon" onclick="Transactions.deleteTransaction('${t.type}', '${t.id}')" title="Delete">${Utils.icons.trash}</button>
+                          <button class="btn btn-ghost btn-icon text-danger" onclick="Transactions.deleteTransaction('${t.type}', '${t.id}')" title="Delete">${Utils.icons.trash}</button>
                         </div>
                       </td>
                     </tr>
@@ -182,20 +239,7 @@ const Transactions = {
     const parties = this.getParties();
 
     return `
-      <div class="stat-grid" style="margin-bottom:20px">
-        <div class="stat-card profit">
-          <div class="stat-label">Total Income</div>
-          <div class="stat-value text-success">${Utils.formatCurrency(totals.totalIncome)}</div>
-        </div>
-        <div class="stat-card due">
-          <div class="stat-label">Total Expense</div>
-          <div class="stat-value text-danger">${Utils.formatCurrency(totals.totalExpense)}</div>
-        </div>
-        <div class="stat-card cash">
-          <div class="stat-label">Net Balance</div>
-          <div class="stat-value ${totals.netBalance >= 0 ? 'text-success' : 'text-danger'}">${Utils.formatCurrency(totals.netBalance)}</div>
-        </div>
-      </div>
+
 
       <div class="toolbar">
         <div class="toolbar-left">
@@ -212,6 +256,9 @@ const Transactions = {
           </div>
         </div>
         <div class="toolbar-right flex gap-2">
+          <button class="btn btn-outline btn-sm" onclick="Transactions.toggleSortOrder()" style="font-weight:600" title="Toggle date sorting order">
+            ${this.sortOrder === 'asc' ? '📅 ⬆️ Oldest First' : '📅 ⬇️ Newest First'}
+          </button>
           <button class="btn btn-outline btn-sm" onclick="App.undoLastAction()" title="Undo last action" style="color:var(--text-accent);border-color:var(--border);font-weight:700">
             ↩️ Undo
           </button>
@@ -284,14 +331,6 @@ const Transactions = {
     const parties = this.getParties();
 
     return `
-      <div class="stat-grid" style="margin-bottom:20px">
-        <div class="stat-card ${isIncome ? 'profit' : 'due'}">
-          <div class="stat-label">Total ${isIncome ? 'Income' : 'Expense'}</div>
-          <div class="stat-value ${isIncome ? 'text-success' : 'text-danger'}">${Utils.formatCurrency(totalAmount)}</div>
-          <div class="stat-change">${transactions.length} entries recorded</div>
-        </div>
-      </div>
-
       <div class="toolbar">
         <div class="toolbar-left">
           <div class="search-bar" style="flex:1;max-width:260px">
@@ -389,7 +428,20 @@ App.refreshPage();
       }
     };
 
-    if (record.accountId) {
+    // Revert account balances (supports both multi-account and legacy single-account)
+    if (record.accounts && record.accounts.length > 0) {
+      record.accounts.forEach(accEntry => {
+        if (accEntry.accountId) {
+          const account = DB.getById(DB.COLLECTIONS.ACCOUNTS, accEntry.accountId);
+          if (account) {
+            const revertChange = (accEntry.type || (isIncome ? 'income' : 'expense')) === 'income' ? -Utils.parseNum(accEntry.amount) : Utils.parseNum(accEntry.amount);
+            DB.update(DB.COLLECTIONS.ACCOUNTS, accEntry.accountId, {
+              balance: Utils.parseNum(account.balance) + revertChange
+            });
+          }
+        }
+      });
+    } else if (record.accountId) {
       const account = DB.getById(DB.COLLECTIONS.ACCOUNTS, record.accountId);
       if (account) {
         const revertChange = isIncome ? -Utils.parseNum(record.amount) : Utils.parseNum(record.amount);

@@ -99,6 +99,16 @@ const Settings = {
 
             <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--bg-glass);border-radius:var(--radius-sm)">
               <div>
+                <div class="font-bold">⚡ Cloud Auto Sync</div>
+                <div class="text-muted" style="font-size:0.8rem">Turn OFF if you don't want cloud data auto-restoring</div>
+              </div>
+              <button class="btn ${Settings.isCloudSyncDisabled() ? 'btn-danger' : 'btn-success'} btn-sm" onclick="Settings.toggleCloudSync()" style="font-weight:700">
+                ${Settings.isCloudSyncDisabled() ? '🔴 Cloud Sync: OFF' : '🟢 Cloud Sync: ON'}
+              </button>
+            </div>
+
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--bg-glass);border-radius:var(--radius-sm)">
+              <div>
                 <div class="font-bold">📥 Pull Cloud Data (Restore)</div>
                 <div class="text-muted" style="font-size:0.8rem">Download data saved in your Google Account to this device</div>
               </div>
@@ -124,6 +134,16 @@ const Settings = {
               </div>
               <button class="btn btn-accent btn-sm" onclick="Sync.syncNow()">
                 🔄 Smart Sync
+              </button>
+            </div>
+
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--bg-glass);border-radius:var(--radius-sm)">
+              <div>
+                <div class="font-bold text-danger">⚠️ Delete Cloud Data</div>
+                <div class="text-muted" style="font-size:0.8rem">Permanently wipe all data from your Google Account (Keeps local device data)</div>
+              </div>
+              <button class="btn btn-danger btn-sm" onclick="Settings.handleDeleteCloudDataOnly()">
+                🗑️ Delete Cloud Data
               </button>
             </div>
           </div>
@@ -252,11 +272,46 @@ const Settings = {
     App.refreshPage();
   },
 
-  clearData() {
-    if (!confirm('⚠️ DELETE ALL DATA? This cannot be undone!')) return;
-    if (!confirm('Are you REALLY sure? Export backup first if needed.')) return;
-    DB.clearAll();
-    App.toast('All data cleared', 'warning');
+  isCloudSyncDisabled() {
+    return localStorage.getItem('vyapar_cloud_sync_disabled') === 'true';
+  },
+
+  toggleCloudSync() {
+    const current = this.isCloudSyncDisabled();
+    if (current) {
+      localStorage.removeItem('vyapar_cloud_sync_disabled');
+      App.toast('Cloud Sync turned ON 🟢', 'success');
+    } else {
+      localStorage.setItem('vyapar_cloud_sync_disabled', 'true');
+      App.toast('Cloud Sync turned OFF 🔴', 'warning');
+    }
+    App.refreshPage();
+  },
+
+  async handleDeleteCloudDataOnly() {
+    if (!confirm('⚠️ Are you sure you want to PERMANENTLY DELETE all cloud data from your Google Account? (Your local data on this phone will NOT be deleted)')) return;
+    await Sync.deleteCloudDataOnly();
+  },
+
+  async clearData() {
+    if (!confirm('⚠️ DELETE ALL DATA (Local & Cloud)? This cannot be undone!')) return;
+    if (!confirm('Are you REALLY sure? All cloud backups will also be permanently deleted.')) return;
+    
+    App.toast('Wiping all local and cloud data... ⏳', 'info');
+    
+    try {
+      if (window.Sync && Sync.wipeAllData) {
+        await Sync.wipeAllData();
+      } else {
+        DB.clearAll();
+      }
+      App.toast('All local & cloud data cleared permanently! 🗑️', 'success');
+    } catch (err) {
+      console.error('Clear data error:', err);
+      DB.clearAll();
+      App.toast('Local data cleared! 🗑️', 'warning');
+    }
+
     App.refreshPage();
   }
 };

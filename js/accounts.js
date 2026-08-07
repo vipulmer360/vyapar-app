@@ -40,16 +40,7 @@ const Accounts = {
     const totalBalance = accounts.reduce((sum, a) => sum + Utils.parseNum(a.balance), 0);
 
     return `
-      <div class="stat-grid" style="margin-bottom:20px">
-        <div class="stat-card cash">
-          <div class="stat-label">Total Accounts</div>
-          <div class="stat-value text-accent">${accounts.length}</div>
-        </div>
-        <div class="stat-card profit">
-          <div class="stat-label">Total Balance</div>
-          <div class="stat-value text-success">${Utils.formatCurrency(totalBalance)}</div>
-        </div>
-      </div>
+
 
       <div class="toolbar">
         <div class="toolbar-left">
@@ -127,7 +118,10 @@ const Accounts = {
                       <div class="flex items-center gap-1">
                         <span style="font-size:1.3rem">${preset.icon}</span>
                         <div>
-                          <div class="font-bold">${Utils.escapeHtml(acc.name)}</div>
+                          <div class="font-bold">
+                            ${Utils.escapeHtml(acc.name)}
+                            ${acc.isPersonal ? '<span title="Personal Account (Excluded from Dashboard)" style="font-size:0.8rem">🔒</span>' : ''}
+                          </div>
                           ${acc.bankName ? `<div class="text-muted" style="font-size:0.75rem">${Utils.escapeHtml(acc.bankName)}</div>` : ''}
                         </div>
                       </div>
@@ -159,10 +153,16 @@ const Accounts = {
   },
 
   _getAccountStats(accountId) {
-    const trans = this.getAccountTransactions(accountId);
+    const trans = Calculations.getAccountTransactions(accountId);
     
-    const totalIncome = trans.filter(t => t.type === 'income').reduce((sum, i) => sum + this.getItemAmount(i), 0);
-    const totalExpense = trans.filter(t => t.type === 'expense').reduce((sum, e) => sum + this.getItemAmount(e), 0);
+    let totalIncome = 0;
+    let totalExpense = 0;
+
+    trans.forEach(t => {
+      const details = Calculations.getAccountDetails(t, accountId);
+      if (details.type === 'income') totalIncome += details.amount;
+      else if (details.type === 'expense') totalExpense += details.amount;
+    });
 
     return {
       totalIncome,
@@ -221,6 +221,13 @@ const Accounts = {
           <label class="form-label">Notes</label>
           <textarea class="form-textarea" name="notes" rows="2" placeholder="Any additional details...">${isEdit ? Utils.escapeHtml(acc.notes || '') : ''}</textarea>
         </div>
+        <div class="form-group" style="background:var(--bg-glass); padding:12px; border-radius:var(--radius-sm); border:1px solid var(--border-light);">
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <input type="checkbox" name="isPersonal" value="true" ${isEdit && acc.isPersonal ? 'checked' : ''} style="width:16px; height:16px; accent-color:var(--accent);">
+            <span style="font-weight:600; color:var(--text-secondary)">Personal Account (Exclude from Dashboard)</span>
+          </label>
+          <div class="form-helper" style="margin-left:24px;">Transactions involving this account will NOT affect the main daily Profit/Loss.</div>
+        </div>
         <div class="modal-footer" style="padding:16px 0 0;border-top:1px solid var(--border)">
           <button type="button" class="btn btn-outline" onclick="App.closeModal()">Cancel</button>
           <button type="submit" class="btn btn-primary">${isEdit ? 'Update' : 'Add'} Account</button>
@@ -239,7 +246,8 @@ const Accounts = {
       bankName: form.get('bankName'),
       accountNumber: form.get('accountNumber'),
       ifscCode: form.get('ifscCode'),
-      notes: form.get('notes')
+      notes: form.get('notes'),
+      isPersonal: form.get('isPersonal') === 'true'
     };
 
     if (id) {

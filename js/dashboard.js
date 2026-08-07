@@ -20,31 +20,18 @@ const Dashboard = {
         ${Accounts.renderDashboardGrid()}
       </div>
 
-      <!-- Quick Actions -->
-      <div class="quick-actions">
-        <button class="quick-action-btn" style="border-color:var(--success)" onclick="Transactions.openAddModal('income')">
-          <span style="font-size:1.5rem">💵</span>
-          Add Income
-        </button>
-        <button class="quick-action-btn" style="border-color:var(--danger)" onclick="Transactions.openAddModal('expense')">
-          <span style="font-size:1.5rem">💸</span>
-          Add Expense
-        </button>
-        <button class="quick-action-btn" onclick="App.navigate('accounts'); Accounts.openAddAccount()">
-          <span style="font-size:1.5rem">🏦</span>
-          Add Account
-        </button>
-        <button class="quick-action-btn" onclick="App.navigate('reports')">
-          ${Utils.icons.reports}
-          Reports
-        </button>
-      </div>
+      <!-- Quick Actions Removed as per user request -->
 
       <!-- Recent Transactions (All) -->
       <div class="recent-list mt-3">
         <div class="recent-list-header">
           <div class="recent-list-title">🧾 All Recent Transactions</div>
-          <button class="btn btn-sm btn-outline" onclick="App.navigate('transactions')">Manage</button>
+          <div class="flex gap-2">
+            <button class="btn btn-sm btn-outline" onclick="Transactions.toggleSortOrder()" style="font-weight:600">
+              ${Transactions.sortOrder === 'asc' ? '📅 ⬆️ Oldest First' : '📅 ⬇️ Newest First'}
+            </button>
+            <button class="btn btn-sm btn-outline" onclick="App.navigate('transactions')">Manage</button>
+          </div>
         </div>
         <div style="padding-bottom: 20px;">
           ${Transactions.renderRecentDashboardRows(0)}

@@ -50,6 +50,7 @@ const Sync = {
 
   // Push a single collection to cloud
   async pushCollection(localKey) {
+    if (localStorage.getItem('vyapar_cloud_sync_disabled') === 'true') return;
     const userDoc = this._userDoc();
     if (!userDoc) return;
 
@@ -133,6 +134,10 @@ const Sync = {
 
   // Pull ALL collections from cloud
   async pullAll(force = false) {
+    if (localStorage.getItem('vyapar_cloud_sync_disabled') === 'true') {
+      App.toast('Cloud sync is currently OFF in Settings 🔴', 'warning');
+      return;
+    }
     if (this.isSyncing && !force) return;
     this.isSyncing = true;
     this._updateSyncIndicator('syncing');
@@ -163,6 +168,10 @@ const Sync = {
   // ========== SMART SYNC: Merge Cloud ↔ Local ==========
 
   async smartSync() {
+    if (localStorage.getItem('vyapar_cloud_sync_disabled') === 'true') {
+      console.log('🔴 Cloud sync is disabled in settings');
+      return;
+    }
     const userDoc = this._userDoc();
     if (!userDoc) return;
 
@@ -209,6 +218,72 @@ const Sync = {
     }
 
     this.isSyncing = false;
+  },
+
+  // Delete all cloud & local data permanently by overwriting with empty arrays
+  async wipeAllData() {
+    this.isSyncing = true;
+    this._stopRealtimeListeners();
+
+    // 1. Overwrite all local storage keys with empty arrays
+    Object.keys(this.SYNC_COLLECTIONS).forEach(localKey => {
+      if (localKey === 'vyapar_settings') {
+        localStorage.setItem(localKey, JSON.stringify(DB.getSettings()));
+      } else {
+        localStorage.setItem(localKey, '[]');
+      }
+    });
+
+    // 2. Delete all Firestore cloud documents explicitly
+    const userDoc = this._userDoc();
+    if (userDoc) {
+      try {
+        const promises = Object.entries(this.SYNC_COLLECTIONS).map(([localKey, cloudKey]) => {
+          const docRef = userDoc.collection('data').doc(cloudKey);
+          return docRef.delete();
+        });
+        await Promise.all(promises);
+        console.log('🗑️ All Cloud collections explicitly deleted');
+      } catch (err) {
+        console.error('Error wiping cloud data:', err);
+      }
+    }
+
+    // 3. Double guarantee: Push all empty collections to cloud again
+    try {
+      await this.pushAll(true);
+    } catch (e) {
+      console.error('Error pushing empty state to cloud:', e);
+    }
+
+    this.isSyncing = false;
+  },
+
+  // Delete ONLY cloud data, leave local data untouched
+  async deleteCloudDataOnly() {
+    this.isSyncing = true;
+    this._updateSyncIndicator('syncing');
+    
+    const userDoc = this._userDoc();
+    if (userDoc) {
+      try {
+        const promises = Object.entries(this.SYNC_COLLECTIONS).map(([localKey, cloudKey]) => {
+          const docRef = userDoc.collection('data').doc(cloudKey);
+          return docRef.delete();
+        });
+        await Promise.all(promises);
+        console.log('🗑️ Cloud Data Deleted Successfully');
+        App.toast('Cloud Data Permanently Deleted 🗑️', 'success');
+      } catch (err) {
+        console.error('Error deleting cloud data:', err);
+        App.toast('Failed to delete cloud data', 'error');
+      }
+    } else {
+      App.toast('Not logged in to Google', 'error');
+    }
+    
+    this.isSyncing = false;
+    this._updateSyncIndicator('synced');
   },
 
   // Merge cloud data with local (cloud wins on conflicts)

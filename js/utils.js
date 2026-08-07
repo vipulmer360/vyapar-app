@@ -12,8 +12,8 @@ const Utils = {
   formatCurrency(amount) {
     const num = parseFloat(amount) || 0;
     return num.toLocaleString('en-IN', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
     });
   },
 
@@ -29,12 +29,15 @@ const Utils = {
   // Format date
   formatDate(date) {
     if (!date) return '';
+    const parts = String(date).split('T')[0].split('-');
+    if (parts.length === 3) {
+      return `${parts[2]}-${parts[1]}-${parts[0]}`;
+    }
     const d = new Date(date);
-    return d.toLocaleDateString('en-IN', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    });
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}-${month}-${year}`;
   },
 
   // Format date for input

@@ -160,11 +160,16 @@ const App = {
 
   // Handle routing
   handleRouting() {
-    // Close sidebar on mobile when clicking overlay
+    // Close sidebar & FAB when clicking outside
     document.addEventListener('click', (e) => {
       const sidebar = document.querySelector('.sidebar');
-      if (sidebar && sidebar.classList.contains('open') && !sidebar.contains(e.target) && !e.target.classList.contains('hamburger')) {
+      if (sidebar && sidebar.classList.contains('open') && !sidebar.contains(e.target) && !e.target.closest('.hamburger')) {
         sidebar.classList.remove('open');
+      }
+      
+      const fab = document.getElementById('fabContainer');
+      if (fab && fab.classList.contains('open') && !fab.contains(e.target)) {
+        fab.classList.remove('open');
       }
     });
   },
@@ -247,6 +252,23 @@ const App = {
           <span>Menu</span>
         </div>
       </nav>
+
+      <!-- Floating Action Button (FAB) -->
+      <div class="fab-container" id="fabContainer">
+        <div class="fab-menu" id="fabMenu">
+          <div class="fab-item" onclick="App.toggleFab(); Transactions.openAddModal('income')">
+            <span class="fab-label">Add Income</span>
+            <div class="fab-btn-small" style="background:var(--success)">💵</div>
+          </div>
+          <div class="fab-item" onclick="App.toggleFab(); Transactions.openAddModal('expense')">
+            <span class="fab-label">Add Expense</span>
+            <div class="fab-btn-small" style="background:var(--danger)">💸</div>
+          </div>
+        </div>
+        <button class="fab-btn" onclick="App.toggleFab()">
+          ${Utils.icons.plus}
+        </button>
+      </div>
 
       <!-- Modal -->
       <div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)App.closeModal()">
@@ -348,6 +370,14 @@ const App = {
     document.getElementById('sidebar')?.classList.toggle('open');
   },
 
+  // Toggle FAB Menu
+  toggleFab() {
+    const fabContainer = document.getElementById('fabContainer');
+    if (fabContainer) {
+      fabContainer.classList.toggle('open');
+    }
+  },
+
   // Show modal
   showModal(title, content, extraClass = '') {
     const overlay = document.getElementById('modalOverlay');
@@ -411,10 +441,23 @@ const App = {
         const { collection, record } = action.data;
         DB.add(collection, record);
 
-        if (record.accountId) {
+        // Restore account balances (supports both multi-account and legacy)
+        const isInc = collection === DB.COLLECTIONS.INCOMES;
+        if (record.accounts && record.accounts.length > 0) {
+          record.accounts.forEach(accEntry => {
+            if (accEntry.accountId) {
+              const account = DB.getById(DB.COLLECTIONS.ACCOUNTS, accEntry.accountId);
+              if (account) {
+                const change = (accEntry.type || (isInc ? 'income' : 'expense')) === 'income' ? Utils.parseNum(accEntry.amount) : -Utils.parseNum(accEntry.amount);
+                DB.update(DB.COLLECTIONS.ACCOUNTS, accEntry.accountId, {
+                  balance: Utils.parseNum(account.balance) + change
+                });
+              }
+            }
+          });
+        } else if (record.accountId) {
           const account = DB.getById(DB.COLLECTIONS.ACCOUNTS, record.accountId);
           if (account) {
-            const isInc = collection === DB.COLLECTIONS.INCOMES;
             const change = isInc ? Utils.parseNum(record.amount) : -Utils.parseNum(record.amount);
             DB.update(DB.COLLECTIONS.ACCOUNTS, record.accountId, {
               balance: Utils.parseNum(account.balance) + change
