@@ -288,21 +288,15 @@ const Accounts = {
           const preset = this.typePresets[acc.type] || this.typePresets.other;
           const stats = this._getAccountStats(acc.id);
           return `
-            <div class="account-scroll-card" style="background:${preset.gradient};cursor:pointer" onclick="Transactions.viewAccountLedger('${acc.id}')">
-              <div class="account-scroll-header">
-                <span class="account-scroll-icon">${preset.icon}</span>
-                <span class="account-scroll-type">${preset.label}</span>
-              </div>
+            <div class="account-scroll-card minimal-card" style="background:${preset.gradient};cursor:pointer" onclick="Transactions.viewAccountLedger('${acc.id}')">
               <div class="account-scroll-name">${Utils.escapeHtml(acc.name)}</div>
               <div class="account-scroll-balance">${Utils.formatCurrency(acc.balance)}</div>
-
             </div>
           `;
         }).join('')}
         <!-- Add Account Card -->
-        <div class="account-scroll-card account-scroll-add" onclick="App.navigate('accounts')">
-          <div style="font-size:32px;margin-bottom:8px">➕</div>
-          <div style="font-size:0.85rem;font-weight:600">Add Account</div>
+        <div class="account-scroll-card account-scroll-add minimal-card" onclick="App.navigate('accounts')" style="justify-content:center; align-items:center;">
+          <div style="font-size:1.1rem;font-weight:600;opacity:0.9;">+ Add Account</div>
         </div>
       </div>
     `;

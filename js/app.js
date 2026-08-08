@@ -304,7 +304,7 @@ const App = {
     let initialRight, initialBottom;
 
     const dragStart = (e) => {
-      if (e.target.closest('.fab-menu')) return;
+      if (!e.target.closest('.fab-btn')) return;
       
       const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
       const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
