@@ -163,7 +163,7 @@ const App = {
     // Close sidebar & FAB when clicking outside
     document.addEventListener('click', (e) => {
       const sidebar = document.querySelector('.sidebar');
-      if (sidebar && sidebar.classList.contains('open') && !sidebar.contains(e.target) && !e.target.closest('.hamburger')) {
+      if (sidebar && sidebar.classList.contains('open') && !sidebar.contains(e.target) && !e.target.closest('.hamburger') && !e.target.closest('.bottom-nav-item')) {
         sidebar.classList.remove('open');
       }
       

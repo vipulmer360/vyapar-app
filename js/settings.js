@@ -5,9 +5,75 @@
 const Settings = {
   render() {
     const settings = DB.getSettings();
+    const accounts = DB.getAll(DB.COLLECTIONS.ACCOUNTS);
+    const savedPrefs = settings.dashboardPreferences || {};
+    const dashPrefs = {
+      sectionOrder: savedPrefs.sectionOrder || 'accounts_first',
+      totalsStartDate: savedPrefs.totalsStartDate || Utils.today(),
+      totalsEndDate: savedPrefs.totalsEndDate || Utils.today(),
+      transactionsStartDate: savedPrefs.transactionsStartDate || Utils.today(),
+      transactionsEndDate: savedPrefs.transactionsEndDate || Utils.today(),
+      includedAccounts: savedPrefs.includedAccounts || accounts.map(a => a.id)
+    };
 
     return `
       <div style="max-width:600px">
+        <!-- Dashboard Customization -->
+        <div class="card mb-3" style="border: 1px solid var(--accent)">
+          <div class="card-header">
+            <h3 class="card-title">📊 Dashboard Customization</h3>
+          </div>
+          <form id="dashboardSettingsForm" autocomplete="off" onsubmit="Settings.saveDashboard(event)">
+            
+            <div class="form-group">
+              <label class="form-label">Dashboard Layout Order</label>
+              <select class="form-select" name="sectionOrder">
+                <option value="accounts_first" ${dashPrefs.sectionOrder === 'accounts_first' ? 'selected' : ''}>1. Accounts  ->  2. Recent Transactions</option>
+                <option value="transactions_first" ${dashPrefs.sectionOrder === 'transactions_first' ? 'selected' : ''}>1. Recent Transactions  ->  2. Accounts</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">Profit & Loss Date Range</label>
+              <div style="display: flex; gap: 10px; align-items: center;">
+                <input type="date" class="form-input" name="totalsStartDate" value="${dashPrefs.totalsStartDate || Utils.today()}" required>
+                <span>to</span>
+                <input type="date" class="form-input" name="totalsEndDate" value="${dashPrefs.totalsEndDate || Utils.today()}" required>
+              </div>
+              <div class="form-helper">Custom date range for Top Summary Cards.</div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Recent Transactions Range</label>
+              <div style="display: flex; gap: 10px; align-items: center;">
+                <input type="date" class="form-input" name="transactionsStartDate" value="${dashPrefs.transactionsStartDate || Utils.today()}" required>
+                <span>to</span>
+                <input type="date" class="form-input" name="transactionsEndDate" value="${dashPrefs.transactionsEndDate || Utils.today()}" required>
+              </div>
+              <div class="form-helper">Filter transactions shown on the dashboard.</div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Accounts to Include in Totals</label>
+              <div style="background:var(--bg-glass); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px; max-height: 200px; overflow-y: auto;">
+                ${accounts.map(acc => `
+                  <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom:8px;">
+                    <input type="checkbox" name="includedAccounts" value="${acc.id}" 
+                      ${dashPrefs.includedAccounts.includes(acc.id) ? 'checked' : ''} 
+                      style="width:16px; height:16px; accent-color:var(--accent);">
+                    <span style="font-weight:500;">${Utils.escapeHtml(acc.name)}</span>
+                    <span style="opacity:0.6; font-size:0.8rem; margin-left:auto;">${Utils.formatCurrency(acc.balance)}</span>
+                  </label>
+                `).join('')}
+                ${accounts.length === 0 ? '<div style="opacity:0.6;font-size:0.85rem">No accounts found.</div>' : ''}
+              </div>
+              <div class="form-helper">Which accounts should be summed up in 'Total Balance'?</div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block mt-2">💾 Save Dashboard Settings</button>
+          </form>
+        </div>
+
         <!-- Business Profile -->
         <div class="card mb-3">
           <div class="card-header">
@@ -220,7 +286,9 @@ const Settings = {
   save(e) {
     e.preventDefault();
     const form = new FormData(e.target);
-    const settings = {
+    const existing = DB.getSettings();
+    const newSettings = {
+      ...existing,
       businessName: form.get('businessName'),
       businessAddress: form.get('businessAddress'),
       businessPhone: form.get('businessPhone'),
@@ -234,11 +302,28 @@ const Settings = {
       purchasePrefix: form.get('purchasePrefix'),
       termsAndConditions: form.get('termsAndConditions')
     };
-    DB.saveSettings(settings);
+    DB.saveSettings(newSettings);
     App.toast('Settings saved! ⚙️', 'success');
     // Update sidebar business name
     const brandEl = document.querySelector('.sidebar-brand h1');
-    if (brandEl) brandEl.textContent = settings.businessName;
+    if (brandEl) brandEl.textContent = newSettings.businessName;
+  },
+
+  saveDashboard(e) {
+    e.preventDefault();
+    const form = new FormData(e.target);
+    const existing = DB.getSettings();
+    const dashPrefs = {
+      sectionOrder: form.get('sectionOrder'),
+      totalsStartDate: form.get('totalsStartDate'),
+      totalsEndDate: form.get('totalsEndDate'),
+      transactionsStartDate: form.get('transactionsStartDate'),
+      transactionsEndDate: form.get('transactionsEndDate'),
+      includedAccounts: form.getAll('includedAccounts') // Returns array of checked values
+    };
+    
+    DB.saveSettings({ ...existing, dashboardPreferences: dashPrefs });
+    App.toast('Dashboard Settings saved! 📊', 'success');
   },
 
   exportData() {

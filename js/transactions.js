@@ -304,8 +304,15 @@ const Transactions = {
     App.refreshPage();
   },
 
-  renderRecentDashboardRows(count = 4) {
+  renderRecentDashboardRows(count = 4, startDate, endDate) {
     let allTrans = this.getAllTransactions(false);
+    if (startDate && endDate) {
+      allTrans = allTrans.filter(t => t.date >= startDate && t.date <= endDate);
+    } else if (!startDate && !endDate) {
+      // Fallback if no dates provided
+      const range = Utils.getDateRange('month');
+      allTrans = allTrans.filter(t => t.date >= range.start && t.date < range.end);
+    }
     if (count > 0) {
       allTrans = allTrans.slice(0, count);
     }

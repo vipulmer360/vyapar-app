@@ -382,6 +382,7 @@ img {
   font-weight: 500;
   transition: all var(--transition-fast);
   flex: 1;
+  cursor: pointer;
 }
 
 .bottom-nav-item.active {
@@ -2130,6 +2131,7 @@ tr.drag-over-bottom {
   flex-direction: column;
   align-items: flex-end;
   gap: 16px;
+  pointer-events: none; /* Let touches pass through the empty areas */
 }
 
 .fab-menu {
@@ -2195,6 +2197,7 @@ tr.drag-over-bottom {
   box-shadow: 0 4px 14px 0 rgba(99, 102, 241, 0.5);
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: auto; /* Re-enable touches on the button itself */
 }
 
 .fab-btn svg {

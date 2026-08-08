@@ -110,6 +110,9 @@ const DB = {
 
   saveSettings(settings) {
     localStorage.setItem(this.COLLECTIONS.SETTINGS, JSON.stringify(settings));
+    if (typeof Sync !== 'undefined') {
+      Sync.onDataChange(this.COLLECTIONS.SETTINGS);
+    }
   },
 
   defaultSettings() {
@@ -202,31 +205,35 @@ const DB = {
 
   // ========== DASHBOARD HELPERS ==========
 
-  getDashboardStats(dateRange = 'month') {
-    const range = Utils.getDateRange(dateRange);
-    const sales = this.getAll(this.COLLECTIONS.SALES);
-    const purchases = this.getAll(this.COLLECTIONS.PURCHASES);
-    const payments = this.getAll(this.COLLECTIONS.PAYMENTS);
+  getDashboardStats(startDate, endDate) {
+    if (!startDate || !endDate) {
+      const range = Utils.getDateRange('month');
+      startDate = range.start;
+      endDate = range.end;
+    }
+    
+    const incomes = this.getAll(this.COLLECTIONS.INCOMES).map(i => ({...i, type: 'income'}));
+    const expenses = this.getAll(this.COLLECTIONS.EXPENSES).map(e => ({...e, type: 'expense'}));
 
-    const filteredSales = sales.filter(s => s.date >= range.start && s.date < range.end);
-    const filteredPurchases = purchases.filter(p => p.date >= range.start && p.date < range.end);
+    const allTrans = [...incomes, ...expenses].filter(t => 
+      !t.isPartyOnly && 
+      t.date >= startDate && 
+      t.date <= endDate
+    );
 
-    const totalSales = filteredSales.reduce((sum, s) => sum + Utils.parseNum(s.grandTotal), 0);
-    const totalPurchases = filteredPurchases.reduce((sum, p) => sum + Utils.parseNum(p.grandTotal), 0);
-    const profit = totalSales - totalPurchases;
-
-    const totalReceivable = sales.reduce((sum, s) => sum + Utils.parseNum(s.grandTotal), 0) -
-      payments.filter(p => p.type === 'in').reduce((sum, p) => sum + Utils.parseNum(p.amount), 0);
-
-    const totalPayable = purchases.reduce((sum, p) => sum + Utils.parseNum(p.grandTotal), 0) -
-      payments.filter(p => p.type === 'out').reduce((sum, p) => sum + Utils.parseNum(p.amount), 0);
+    let totals = { totalIncome: 0, totalExpense: 0, netProfit: 0 };
+    if (typeof Calculations !== 'undefined') {
+      totals = Calculations.getMainTransactionTotals(allTrans);
+    }
 
     return {
-      totalSales, totalPurchases, profit,
-      salesCount: filteredSales.length,
-      purchaseCount: filteredPurchases.length,
-      totalReceivable: Math.max(0, totalReceivable),
-      totalPayable: Math.max(0, totalPayable)
+      totalSales: totals.totalIncome, 
+      totalPurchases: totals.totalExpense, 
+      profit: totals.netProfit,
+      salesCount: allTrans.filter(t => t.type === 'income').length,
+      purchaseCount: allTrans.filter(t => t.type === 'expense').length,
+      totalReceivable: 0,
+      totalPayable: 0
     };
   },
 

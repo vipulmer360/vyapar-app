@@ -4,14 +4,42 @@
 
 const Dashboard = {
   render() {
-    return `
-      <!-- Install Banner -->
-      <div class="install-banner" id="installBanner" onclick="App.installApp()">
-        📱 App install karein apne phone mein!
-        <button class="btn btn-sm">Install</button>
-      </div>
+    const settings = DB.getSettings();
+    const savedPrefs = settings.dashboardPreferences || {};
+    const prefs = {
+      sectionOrder: savedPrefs.sectionOrder || 'accounts_first',
+      totalsStartDate: savedPrefs.totalsStartDate || Utils.today(),
+      totalsEndDate: savedPrefs.totalsEndDate || Utils.today(),
+      transactionsStartDate: savedPrefs.transactionsStartDate || Utils.today(),
+      transactionsEndDate: savedPrefs.transactionsEndDate || Utils.today(),
+      includedAccounts: savedPrefs.includedAccounts || DB.getAll(DB.COLLECTIONS.ACCOUNTS).map(a => a.id)
+    };
 
-      <!-- Accounts Horizontal Grid -->
+    // Calculate Totals based on date range
+    const stats = DB.getDashboardStats(prefs.totalsStartDate, prefs.totalsEndDate);
+    
+    // Calculate total balance for included accounts
+    const allAccounts = DB.getAll(DB.COLLECTIONS.ACCOUNTS);
+    const includedBalances = allAccounts
+      .filter(a => prefs.includedAccounts.includes(a.id))
+      .reduce((sum, a) => sum + Utils.parseNum(a.balance), 0);
+
+    const summarySection = `
+      <div class="dashboard-summary-cards" style="display:flex; gap:12px; margin-bottom:16px; margin-top:8px;">
+        <div class="summary-card" style="flex:1; background:var(--bg-card); padding:16px; border-radius:var(--radius-md); box-shadow:0 2px 8px rgba(0,0,0,0.05); text-align:center;">
+          <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:600;">Total Balance</div>
+          <div style="font-size:1.4rem; font-weight:800; color:var(--accent);">${Utils.formatCurrency(includedBalances)}</div>
+          <div style="font-size:0.7rem; color:var(--text-muted); margin-top:4px;">(Selected Accounts)</div>
+        </div>
+        <div class="summary-card" style="flex:1; background:var(--bg-card); padding:16px; border-radius:var(--radius-md); box-shadow:0 2px 8px rgba(0,0,0,0.05); text-align:center;">
+          <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:600;">Net Profit</div>
+          <div style="font-size:1.4rem; font-weight:800; color:${stats.profit >= 0 ? 'var(--success)' : 'var(--danger)'};">${Utils.formatCurrency(stats.profit)}</div>
+          <div style="font-size:0.7rem; color:var(--text-muted); margin-top:4px;">(${Utils.formatDate(prefs.totalsStartDate)} - ${Utils.formatDate(prefs.totalsEndDate)})</div>
+        </div>
+      </div>
+    `;
+
+    const accountsSection = `
       <div class="accounts-horizontal-section">
         <div class="accounts-section-header">
           <div class="accounts-section-title">🏦 My Accounts</div>
@@ -19,10 +47,9 @@ const Dashboard = {
         </div>
         ${Accounts.renderDashboardGrid()}
       </div>
+    `;
 
-      <!-- Quick Actions Removed as per user request -->
-
-      <!-- Recent Transactions (All) -->
+    const transactionsSection = `
       <div class="recent-list mt-3">
         <div class="recent-list-header">
           <div class="recent-list-title">🧾 All Recent Transactions</div>
@@ -34,10 +61,28 @@ const Dashboard = {
           </div>
         </div>
         <div style="padding-bottom: 20px;">
-          ${Transactions.renderRecentDashboardRows(0)}
+          ${Transactions.renderRecentDashboardRows(0, prefs.transactionsStartDate, prefs.transactionsEndDate)}
         </div>
       </div>
     `;
+
+    let html = `
+      <!-- Install Banner -->
+      <div class="install-banner" id="installBanner" onclick="App.installApp()">
+        📱 App install karein apne phone mein!
+        <button class="btn btn-sm">Install</button>
+      </div>
+      
+      ${summarySection}
+    `;
+
+    if (prefs.sectionOrder === 'accounts_first') {
+      html += accountsSection + transactionsSection;
+    } else {
+      html += transactionsSection + accountsSection;
+    }
+
+    return html;
   },
 
   // Draw simple bar chart
