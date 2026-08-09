@@ -9,14 +9,19 @@ const Dashboard = {
     const prefs = {
       sectionOrder: savedPrefs.sectionOrder || 'accounts_first',
       totalsStartDate: savedPrefs.totalsStartDate || Utils.today(),
+      totalsEndDateType: savedPrefs.totalsEndDateType || 'today',
       totalsEndDate: savedPrefs.totalsEndDate || Utils.today(),
       transactionsStartDate: savedPrefs.transactionsStartDate || Utils.today(),
+      transactionsEndDateType: savedPrefs.transactionsEndDateType || 'today',
       transactionsEndDate: savedPrefs.transactionsEndDate || Utils.today(),
       includedAccounts: savedPrefs.includedAccounts || DB.getAll(DB.COLLECTIONS.ACCOUNTS).map(a => a.id)
     };
 
     // Calculate Totals based on date range
-    const stats = DB.getDashboardStats(prefs.totalsStartDate, prefs.totalsEndDate);
+    let totalsStart = prefs.totalsStartDate;
+    let totalsEnd = prefs.totalsEndDateType === 'today' ? Utils.today() : prefs.totalsEndDate;
+    
+    const stats = DB.getDashboardStats(totalsStart, totalsEnd);
     
     // Calculate total balance for included accounts
     const allAccounts = DB.getAll(DB.COLLECTIONS.ACCOUNTS);
@@ -34,7 +39,7 @@ const Dashboard = {
         <div class="summary-card" style="flex:1; background:var(--bg-card); padding:16px; border-radius:var(--radius-md); box-shadow:0 2px 8px rgba(0,0,0,0.05); text-align:center;">
           <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:600;">Net Profit</div>
           <div style="font-size:1.4rem; font-weight:800; color:${stats.profit >= 0 ? 'var(--success)' : 'var(--danger)'};">${Utils.formatCurrency(stats.profit)}</div>
-          <div style="font-size:0.7rem; color:var(--text-muted); margin-top:4px;">(${Utils.formatDate(prefs.totalsStartDate)} - ${Utils.formatDate(prefs.totalsEndDate)})</div>
+          <div style="font-size:0.7rem; color:var(--text-muted); margin-top:4px;">(${Utils.formatDate(totalsStart)} - ${prefs.totalsEndDateType === 'today' ? 'Today' : Utils.formatDate(totalsEnd)})</div>
         </div>
       </div>
     `;
@@ -61,7 +66,11 @@ const Dashboard = {
           </div>
         </div>
         <div style="padding-bottom: 20px;">
-          ${Transactions.renderRecentDashboardRows(0, prefs.transactionsStartDate, prefs.transactionsEndDate)}
+          ${(() => {
+            let tStart = prefs.transactionsStartDate;
+            let tEnd = prefs.transactionsEndDateType === 'today' ? Utils.today() : prefs.transactionsEndDate;
+            return Transactions.renderRecentDashboardRows(0, tStart, tEnd);
+          })()}
         </div>
       </div>
     `;

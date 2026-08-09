@@ -10,8 +10,10 @@ const Settings = {
     const dashPrefs = {
       sectionOrder: savedPrefs.sectionOrder || 'accounts_first',
       totalsStartDate: savedPrefs.totalsStartDate || Utils.today(),
+      totalsEndDateType: savedPrefs.totalsEndDateType || 'today',
       totalsEndDate: savedPrefs.totalsEndDate || Utils.today(),
       transactionsStartDate: savedPrefs.transactionsStartDate || Utils.today(),
+      transactionsEndDateType: savedPrefs.transactionsEndDateType || 'today',
       transactionsEndDate: savedPrefs.transactionsEndDate || Utils.today(),
       includedAccounts: savedPrefs.includedAccounts || accounts.map(a => a.id)
     };
@@ -35,20 +37,28 @@ const Settings = {
             
             <div class="form-group">
               <label class="form-label">Profit & Loss Date Range</label>
-              <div style="display: flex; gap: 10px; align-items: center;">
-                <input type="date" class="form-input" name="totalsStartDate" value="${dashPrefs.totalsStartDate || Utils.today()}" required>
+              <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <input type="date" class="form-input" name="totalsStartDate" value="${dashPrefs.totalsStartDate}" style="flex:1">
                 <span>to</span>
-                <input type="date" class="form-input" name="totalsEndDate" value="${dashPrefs.totalsEndDate || Utils.today()}" required>
+                <select class="form-select" name="totalsEndDateType" style="flex:1" onchange="document.getElementById('totalsEndDateInput').style.display = this.value === 'custom' ? 'block' : 'none'">
+                  <option value="today" ${dashPrefs.totalsEndDateType === 'today' ? 'selected' : ''}>Today</option>
+                  <option value="custom" ${dashPrefs.totalsEndDateType === 'custom' ? 'selected' : ''}>Custom Date</option>
+                </select>
+                <input type="date" class="form-input" id="totalsEndDateInput" name="totalsEndDate" value="${dashPrefs.totalsEndDate}" style="display: ${dashPrefs.totalsEndDateType === 'custom' ? 'block' : 'none'}; flex:1">
               </div>
-              <div class="form-helper">Custom date range for Top Summary Cards.</div>
+              <div class="form-helper">Date range for Top Summary Cards.</div>
             </div>
 
             <div class="form-group">
               <label class="form-label">Recent Transactions Range</label>
-              <div style="display: flex; gap: 10px; align-items: center;">
-                <input type="date" class="form-input" name="transactionsStartDate" value="${dashPrefs.transactionsStartDate || Utils.today()}" required>
+              <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <input type="date" class="form-input" name="transactionsStartDate" value="${dashPrefs.transactionsStartDate}" style="flex:1">
                 <span>to</span>
-                <input type="date" class="form-input" name="transactionsEndDate" value="${dashPrefs.transactionsEndDate || Utils.today()}" required>
+                <select class="form-select" name="transactionsEndDateType" style="flex:1" onchange="document.getElementById('transEndDateInput').style.display = this.value === 'custom' ? 'block' : 'none'">
+                  <option value="today" ${dashPrefs.transactionsEndDateType === 'today' ? 'selected' : ''}>Today</option>
+                  <option value="custom" ${dashPrefs.transactionsEndDateType === 'custom' ? 'selected' : ''}>Custom Date</option>
+                </select>
+                <input type="date" class="form-input" id="transEndDateInput" name="transactionsEndDate" value="${dashPrefs.transactionsEndDate}" style="display: ${dashPrefs.transactionsEndDateType === 'custom' ? 'block' : 'none'}; flex:1">
               </div>
               <div class="form-helper">Filter transactions shown on the dashboard.</div>
             </div>
@@ -316,8 +326,10 @@ const Settings = {
     const dashPrefs = {
       sectionOrder: form.get('sectionOrder'),
       totalsStartDate: form.get('totalsStartDate'),
+      totalsEndDateType: form.get('totalsEndDateType'),
       totalsEndDate: form.get('totalsEndDate'),
       transactionsStartDate: form.get('transactionsStartDate'),
+      transactionsEndDateType: form.get('transactionsEndDateType'),
       transactionsEndDate: form.get('transactionsEndDate'),
       includedAccounts: form.getAll('includedAccounts') // Returns array of checked values
     };
