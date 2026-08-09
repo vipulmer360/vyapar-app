@@ -250,6 +250,8 @@ const Transactions = {
       accountObj = DB.getById(DB.COLLECTIONS.ACCOUNTS, this.accountFilter);
       if (accountObj && accountObj.isPendingAccount) {
         isPendingAccount = true;
+        // Hide multi-account clearance receipts from the pending ledger UI
+        filtered = filtered.filter(t => !t.isClearanceReceipt);
         // Filter by pendingStatus for pending accounts (so it doesn't conflict with Party 'status')
         if (this.accountLedgerTab === 'cleared') {
           filtered = filtered.filter(t => t.pendingStatus === 'cleared');

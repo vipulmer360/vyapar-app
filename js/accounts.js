@@ -378,7 +378,7 @@ const Accounts = {
 
     const newEntry = {
       type: record.type,
-      itemName: `Cleared: ${record.itemName || 'Item'}`,
+      itemName: record.itemName || 'Item',
       amount: record.amount,
       price: record.price,
       date: dateInput || Utils.today(),
@@ -398,9 +398,10 @@ const Accounts = {
           type: record.type === 'income' ? 'expense' : 'income' // Offset the pending account
         }
       ],
-      notes: `Payment cleared from ${Utils.formatDate(record.date)}`,
+      notes: 'Clear Pending',
       isPartyOnly: false, // Show in main revenue
-      status: 'cleared_receipt' 
+      status: 'cleared_receipt',
+      isClearanceReceipt: true // To hide from Pending Account ledger UI
     };
 
     const addedEntry = DB.add(collection, newEntry);
