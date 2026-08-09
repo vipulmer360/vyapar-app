@@ -198,7 +198,7 @@ img {
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  z-index: 100;
+  z-index: 110;
   transition: transform var(--transition-slow);
 }
 
