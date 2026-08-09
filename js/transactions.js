@@ -151,12 +151,7 @@ const Transactions = {
                 ${items.map((t, idx) => {
                   let accDisplay = '-';
                   if (t.accounts && t.accounts.length > 0) {
-                     if (t.isClearanceReceipt) {
-                        // Only show the destination bank account for clearance receipts
-                        accDisplay = DB.getById(DB.COLLECTIONS.ACCOUNTS, t.accounts[0].accountId)?.name || t.accounts[0].accountName;
-                     } else {
-                        accDisplay = t.accounts.map(a => DB.getById(DB.COLLECTIONS.ACCOUNTS, a.accountId)?.name || a.accountName).join(', ');
-                     }
+                     accDisplay = t.accounts.map(a => DB.getById(DB.COLLECTIONS.ACCOUNTS, a.accountId)?.name || a.accountName).join(', ');
                   } else if (t.accountId) {
                      const acc = DB.getById(DB.COLLECTIONS.ACCOUNTS, t.accountId);
                      accDisplay = acc ? acc.name : (t.accountName || '-');

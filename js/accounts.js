@@ -395,8 +395,7 @@ const Accounts = {
           accountId: pendingAccountId,
           accountName: pendingAccountName,
           amount: record.amount,
-          type: record.type === 'income' ? 'expense' : 'income', // Offset the pending account
-          isPersonal: true // <--- HIDE FROM MAIN PNL CALCULATION!
+          type: record.type === 'income' ? 'expense' : 'income' // Offset the pending account
         }
       ],
       notes: 'Clear Pending',
