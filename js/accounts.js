@@ -369,8 +369,8 @@ const Accounts = {
       return;
     }
 
-    // 1. Mark original entry as cleared
-    DB.update(collection, id, { status: 'cleared' });
+    // 1. Mark original entry as cleared for pending account (avoiding party status conflict)
+    DB.update(collection, id, { pendingStatus: 'cleared' });
 
     // 2. Create a new entry for the clearance on the new date
     const pendingAccountId = record.accounts && record.accounts.length > 0 ? record.accounts[0].accountId : record.accountId;

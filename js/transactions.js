@@ -211,7 +211,7 @@ const Transactions = {
                       <td class="text-center">${notesHtml}${mathNotes}</td>
                       <td class="text-center">
                         <div class="table-actions" style="justify-content:center">
-                          ${options.isPendingAccount && t.status !== 'cleared' ? `
+                          ${options.isPendingAccount && t.pendingStatus !== 'cleared' ? `
                             <button class="btn btn-ghost btn-icon text-success" onclick="Accounts.openClearanceModal('${t.id}', '${t.type}')" title="Clear Payment">✅</button>
                           ` : ''}
                           <button class="btn btn-ghost btn-icon" onclick="Transactions.openEditModal('${t.type}', '${t.id}')" title="Edit">${Utils.icons.edit}</button>
@@ -250,11 +250,11 @@ const Transactions = {
       accountObj = DB.getById(DB.COLLECTIONS.ACCOUNTS, this.accountFilter);
       if (accountObj && accountObj.isPendingAccount) {
         isPendingAccount = true;
-        // Filter by cleared status for pending accounts
+        // Filter by pendingStatus for pending accounts (so it doesn't conflict with Party 'status')
         if (this.accountLedgerTab === 'cleared') {
-          filtered = filtered.filter(t => t.status === 'cleared');
+          filtered = filtered.filter(t => t.pendingStatus === 'cleared');
         } else {
-          filtered = filtered.filter(t => t.status !== 'cleared');
+          filtered = filtered.filter(t => t.pendingStatus !== 'cleared');
         }
       }
     }

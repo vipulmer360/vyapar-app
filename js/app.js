@@ -579,8 +579,8 @@ const App = {
         // 2. Revert the original entry's status
         const originalEntry = DB.getById(collection, originalId);
         if (originalEntry) {
-          // Remove status property entirely
-          DB.update(collection, originalId, { status: null });
+          // Remove pendingStatus property entirely
+          DB.update(collection, originalId, { pendingStatus: null });
         }
 
         // 3. Revert account balances
