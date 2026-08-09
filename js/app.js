@@ -113,6 +113,27 @@ const App = {
     });
   },
 
+  forceUpdateApp() {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        for (let registration of registrations) {
+          registration.unregister();
+        }
+        if ('caches' in window) {
+           caches.keys().then(keys => {
+             Promise.all(keys.map(key => caches.delete(key))).then(() => {
+               window.location.reload(true);
+             });
+           });
+        } else {
+           window.location.reload(true);
+        }
+      });
+    } else {
+      window.location.reload(true);
+    }
+  },
+
   installApp() {
     if (!this.deferredPrompt) {
       this.toast('Open in Chrome & use "Add to Home Screen"', 'info');
@@ -209,6 +230,7 @@ const App = {
                 <span class="sidebar-user-email">${userInfo ? Utils.escapeHtml(userInfo.email) : ''}</span>
               </div>
             </div>
+            <button class="btn btn-outline btn-sm sidebar-logout-btn" onclick="App.forceUpdateApp()" style="margin-bottom:8px; border-color:var(--accent); color:var(--accent)">🔄 Update App</button>
             <button class="btn btn-outline btn-sm sidebar-logout-btn" onclick="App.handleLogout()">🚪 Logout</button>
             <div class="business-info">v1.0.0 • PWA • Cloud Sync</div>
           </div>
