@@ -403,7 +403,7 @@ const Accounts = {
       status: 'cleared_receipt' 
     };
 
-    DB.add(collection, newEntry);
+    const addedEntry = DB.add(collection, newEntry);
 
     // 3. Update BOTH account balances
     const change = newEntry.type === 'income' ? newEntry.amount : -newEntry.amount;
@@ -420,6 +420,19 @@ const Accounts = {
         balance: Utils.parseNum(pendingAccObj.balance) - change
       });
     }
+
+    App.lastAction = {
+      type: 'revert_account_clearance',
+      data: {
+        collection,
+        originalId: id,
+        newEntryId: addedEntry.id,
+        destAccountId: destAccount.id,
+        pendingAccountId: pendingAccountId,
+        amount: record.amount,
+        type: newEntry.type
+      }
+    };
 
     App.toast('Payment Cleared Successfully! ✅', 'success');
     App.closeModal();

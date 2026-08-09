@@ -570,6 +570,37 @@ const App = {
           }
         }
         this.toast('Clearance action restored! ↩️', 'success');
+      } else if (action.type === 'revert_account_clearance') {
+        const { collection, originalId, newEntryId, destAccountId, pendingAccountId, amount, type } = action.data;
+
+        // 1. Delete the newly created receipt entry
+        DB.delete(collection, newEntryId);
+
+        // 2. Revert the original entry's status
+        const originalEntry = DB.getById(collection, originalId);
+        if (originalEntry) {
+          // Remove status property entirely
+          DB.update(collection, originalId, { status: null });
+        }
+
+        // 3. Revert account balances
+        const destAccount = DB.getById(DB.COLLECTIONS.ACCOUNTS, destAccountId);
+        if (destAccount) {
+          const change = type === 'income' ? -amount : amount;
+          DB.update(DB.COLLECTIONS.ACCOUNTS, destAccountId, {
+            balance: Utils.parseNum(destAccount.balance) + change
+          });
+        }
+
+        const pendingAccount = DB.getById(DB.COLLECTIONS.ACCOUNTS, pendingAccountId);
+        if (pendingAccount) {
+          const change = type === 'income' ? amount : -amount;
+          DB.update(DB.COLLECTIONS.ACCOUNTS, pendingAccountId, {
+            balance: Utils.parseNum(pendingAccount.balance) + change
+          });
+        }
+
+        this.toast('Payment Clearance Reversed! ↩️', 'success');
       }
     } catch (err) {
       console.error('Undo error:', err);
