@@ -228,6 +228,13 @@ const Accounts = {
           </label>
           <div class="form-helper" style="margin-left:24px;">Transactions involving this account will NOT affect the main daily Profit/Loss.</div>
         </div>
+        <div class="form-group" style="background:var(--bg-glass); padding:12px; border-radius:var(--radius-sm); border:1px solid var(--border-light); margin-top:8px;">
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <input type="checkbox" name="isPendingAccount" value="true" ${isEdit && acc.isPendingAccount ? 'checked' : ''} style="width:16px; height:16px; accent-color:var(--accent);">
+            <span style="font-weight:600; color:var(--text-secondary)">Pending/Udhaar Account</span>
+          </label>
+          <div class="form-helper" style="margin-left:24px;">Enable "Clear Payment" feature for transactions in this account to manage dues.</div>
+        </div>
         <div class="modal-footer" style="padding:16px 0 0;border-top:1px solid var(--border)">
           <button type="button" class="btn btn-outline" onclick="App.closeModal()">Cancel</button>
           <button type="submit" class="btn btn-primary">${isEdit ? 'Update' : 'Add'} Account</button>
@@ -247,7 +254,8 @@ const Accounts = {
       accountNumber: form.get('accountNumber'),
       ifscCode: form.get('ifscCode'),
       notes: form.get('notes'),
-      isPersonal: form.get('isPersonal') === 'true'
+      isPersonal: form.get('isPersonal') === 'true',
+      isPendingAccount: form.get('isPendingAccount') === 'true'
     };
 
     if (id) {
@@ -300,5 +308,121 @@ const Accounts = {
         </div>
       </div>
     `;
+  },
+
+  openClearanceModal(id, type) {
+    const collection = type === 'income' ? DB.COLLECTIONS.INCOMES : DB.COLLECTIONS.EXPENSES;
+    const record = DB.getById(collection, id);
+    if (!record) {
+      App.toast('Transaction not found', 'error');
+      return;
+    }
+    
+    // Get non-pending accounts for destination selection
+    const accounts = DB.getAll(DB.COLLECTIONS.ACCOUNTS).filter(a => !a.isPendingAccount);
+    
+    const html = `
+      <div style="padding:16px;">
+        <p style="margin-bottom:16px; color:var(--text-secondary);">
+          You are clearing: <strong>${Utils.escapeHtml(record.itemName || 'Item')}</strong><br>
+          Amount: <strong class="${type === 'income' ? 'text-success' : 'text-danger'}">${Utils.formatCurrency(record.amount)}</strong>
+        </p>
+        
+        <div class="form-group">
+          <label class="form-label">Payment Date (Today by default)</label>
+          <input type="date" id="clearanceDate" class="form-input" value="${Utils.today()}" required>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Destination Account (Bank/Wallet) *</label>
+          <select id="clearanceAccount" class="form-select" required>
+            <option value="">-- Select Receiving Account --</option>
+            ${accounts.map(a => `<option value="${a.id}">${Utils.escapeHtml(a.name)} (${Utils.formatCurrency(a.balance)})</option>`).join('')}
+          </select>
+        </div>
+        
+        <div class="modal-footer" style="margin-top:24px; padding-top:16px; border-top:1px solid var(--border);">
+          <button type="button" class="btn btn-outline" onclick="App.closeModal()">Cancel</button>
+          <button type="button" class="btn btn-success" onclick="Accounts.processClearance('${id}', '${type}')">✅ Clear Payment</button>
+        </div>
+      </div>
+    `;
+    App.showModal('Clear Payment', html);
+  },
+
+  processClearance(id, type) {
+    const collection = type === 'income' ? DB.COLLECTIONS.INCOMES : DB.COLLECTIONS.EXPENSES;
+    const record = DB.getById(collection, id);
+    if (!record) return;
+
+    const dateInput = document.getElementById('clearanceDate').value;
+    const accountId = document.getElementById('clearanceAccount').value;
+
+    if (!accountId) {
+      App.toast('Please select a destination account', 'error');
+      return;
+    }
+
+    const destAccount = DB.getById(DB.COLLECTIONS.ACCOUNTS, accountId);
+    if (!destAccount) {
+      App.toast('Invalid destination account', 'error');
+      return;
+    }
+
+    // 1. Mark original entry as cleared
+    DB.update(collection, id, { status: 'cleared' });
+
+    // 2. Create a new entry for the clearance on the new date
+    const pendingAccountId = record.accounts && record.accounts.length > 0 ? record.accounts[0].accountId : record.accountId;
+    const pendingAccountName = record.accounts && record.accounts.length > 0 ? record.accounts[0].accountName : record.accountName;
+
+    const newEntry = {
+      type: record.type,
+      itemName: `Cleared: ${record.itemName || 'Item'}`,
+      amount: record.amount,
+      price: record.price,
+      date: dateInput || Utils.today(),
+      party: record.party,
+      parties: record.parties,
+      accounts: [
+        {
+          accountId: destAccount.id,
+          accountName: destAccount.name,
+          amount: record.amount,
+          type: record.type // income/expense to Bank
+        },
+        {
+          accountId: pendingAccountId,
+          accountName: pendingAccountName,
+          amount: record.amount,
+          type: record.type === 'income' ? 'expense' : 'income' // Offset the pending account
+        }
+      ],
+      notes: `Payment cleared from ${Utils.formatDate(record.date)}`,
+      isPartyOnly: false, // Show in main revenue
+      status: 'cleared_receipt' 
+    };
+
+    DB.add(collection, newEntry);
+
+    // 3. Update BOTH account balances
+    const change = newEntry.type === 'income' ? newEntry.amount : -newEntry.amount;
+    
+    // Add to bank
+    DB.update(DB.COLLECTIONS.ACCOUNTS, destAccount.id, {
+      balance: Utils.parseNum(destAccount.balance) + change
+    });
+    
+    // Subtract from pending account
+    const pendingAccObj = DB.getById(DB.COLLECTIONS.ACCOUNTS, pendingAccountId);
+    if (pendingAccObj) {
+      DB.update(DB.COLLECTIONS.ACCOUNTS, pendingAccountId, {
+        balance: Utils.parseNum(pendingAccObj.balance) - change
+      });
+    }
+
+    App.toast('Payment Cleared Successfully! ✅', 'success');
+    App.closeModal();
+    App.refreshPage();
   }
 };

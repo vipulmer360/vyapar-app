@@ -21,7 +21,13 @@ const Transactions = {
     this.currentType = 'all'; // Reset to all
     this.searchTerm = ''; // Reset search
     this.partyFilter = ''; // Reset party filter
+    this.accountLedgerTab = 'pending'; // Reset to pending by default
     App.navigate('transactions');
+  },
+  
+  switchAccountLedgerTab(tab) {
+    this.accountLedgerTab = tab;
+    App.refreshPage();
   },
 
   getParties() {
@@ -205,6 +211,9 @@ const Transactions = {
                       <td class="text-center">${notesHtml}${mathNotes}</td>
                       <td class="text-center">
                         <div class="table-actions" style="justify-content:center">
+                          ${options.isPendingAccount && t.status !== 'cleared' ? `
+                            <button class="btn btn-ghost btn-icon text-success" onclick="Accounts.openClearanceModal('${t.id}', '${t.type}')" title="Clear Payment">✅</button>
+                          ` : ''}
                           <button class="btn btn-ghost btn-icon" onclick="Transactions.openEditModal('${t.type}', '${t.id}')" title="Edit">${Utils.icons.edit}</button>
                           <button class="btn btn-ghost btn-icon text-danger" onclick="Transactions.deleteTransaction('${t.type}', '${t.id}')" title="Delete">${Utils.icons.trash}</button>
                         </div>
@@ -233,6 +242,21 @@ const Transactions = {
     }
     if (this.accountFilter) {
       filtered = Calculations.getAccountTransactions(this.accountFilter);
+    }
+
+    let accountObj = null;
+    let isPendingAccount = false;
+    if (this.accountFilter) {
+      accountObj = DB.getById(DB.COLLECTIONS.ACCOUNTS, this.accountFilter);
+      if (accountObj && accountObj.isPendingAccount) {
+        isPendingAccount = true;
+        // Filter by cleared status for pending accounts
+        if (this.accountLedgerTab === 'cleared') {
+          filtered = filtered.filter(t => t.status === 'cleared');
+        } else {
+          filtered = filtered.filter(t => t.status !== 'cleared');
+        }
+      }
     }
 
     const totals = Calculations.getMainTransactionTotals(allTrans);
@@ -290,7 +314,18 @@ const Transactions = {
         </div>
       </div>
 
-      ${this.renderDateGroupCards(filtered)}
+      ${isPendingAccount ? `
+        <div class="tabs mb-2" style="border:none;margin-bottom:16px">
+          <div class="tab ${this.accountLedgerTab !== 'cleared' ? 'active' : ''}" onclick="Transactions.switchAccountLedgerTab('pending')">
+            ⏳ Pending Dues
+          </div>
+          <div class="tab ${this.accountLedgerTab === 'cleared' ? 'active' : ''}" onclick="Transactions.switchAccountLedgerTab('cleared')">
+            ✅ Cleared Payments
+          </div>
+        </div>
+      ` : ''}
+
+      ${this.renderDateGroupCards(filtered, { isPendingAccount })}
     `;
   },
 
