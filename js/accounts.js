@@ -369,9 +369,6 @@ const Accounts = {
       return;
     }
 
-    // 1. Mark original entry as cleared for pending account (avoiding party status conflict)
-    DB.update(collection, id, { pendingStatus: 'cleared' });
-
     // 2. Create a new entry for the clearance on the new date
     const pendingAccountId = record.accounts && record.accounts.length > 0 ? record.accounts[0].accountId : record.accountId;
     const pendingAccountName = record.accounts && record.accounts.length > 0 ? record.accounts[0].accountName : record.accountName;
@@ -382,8 +379,11 @@ const Accounts = {
       amount: record.amount,
       price: record.price,
       date: dateInput || Utils.today(),
-      party: record.party,
-      parties: record.parties,
+      // Do not copy party/parties, otherwise it will duplicate in Party Ledger!
+      party: 'General',
+      parties: [],
+      displayPartyName: record.parties && record.parties.length > 0 ? record.parties[0].partyName : record.party,
+      displayPartyAmount: record.parties && record.parties.length > 0 ? record.parties.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0) : (parseFloat(record.price) || 0),
       accounts: [
         {
           accountId: destAccount.id,
@@ -395,7 +395,8 @@ const Accounts = {
           accountId: pendingAccountId,
           accountName: pendingAccountName,
           amount: record.amount,
-          type: record.type === 'income' ? 'expense' : 'income' // Offset the pending account
+          type: record.type === 'income' ? 'expense' : 'income', // Offset the pending account
+          isPersonal: true // <--- HIDE FROM MAIN PNL CALCULATION!
         }
       ],
       notes: 'Clear Pending',
@@ -405,6 +406,9 @@ const Accounts = {
     };
 
     const addedEntry = DB.add(collection, newEntry);
+
+    // 1. Mark original entry as cleared for pending account (avoiding party status conflict)
+    DB.update(collection, id, { pendingStatus: 'cleared', pendingClearanceId: addedEntry.id });
 
     // 3. Update BOTH account balances
     const change = newEntry.type === 'income' ? newEntry.amount : -newEntry.amount;
@@ -437,6 +441,51 @@ const Accounts = {
 
     App.toast('Payment Cleared Successfully! ✅', 'success');
     App.closeModal();
+    App.refreshPage();
+  },
+
+  revertClearance(id, type) {
+    if (!confirm('Kya aap is clearance ko wapas pending me bhejna chahte hain?')) return;
+    
+    const collection = type === 'income' ? DB.COLLECTIONS.INCOMES : DB.COLLECTIONS.EXPENSES;
+    const originalEntry = DB.getById(collection, id);
+    if (!originalEntry) return;
+
+    if (originalEntry.pendingClearanceId) {
+      const receipt = DB.getById(collection, originalEntry.pendingClearanceId);
+      if (receipt) {
+        // Find destination bank account from receipt
+        const bankAcc = receipt.accounts.find(a => !a.isPersonal);
+        if (bankAcc) {
+           const destAccount = DB.getById(DB.COLLECTIONS.ACCOUNTS, bankAcc.accountId);
+           if (destAccount) {
+             const change = receipt.type === 'income' ? -receipt.amount : receipt.amount;
+             DB.update(DB.COLLECTIONS.ACCOUNTS, destAccount.id, {
+               balance: Utils.parseNum(destAccount.balance) + change
+             });
+           }
+        }
+        
+        // Find pending account
+        const pendingAccId = originalEntry.accounts && originalEntry.accounts.length > 0 ? originalEntry.accounts[0].accountId : originalEntry.accountId;
+        const pendingAccObj = DB.getById(DB.COLLECTIONS.ACCOUNTS, pendingAccId);
+        if (pendingAccObj) {
+           const change = receipt.type === 'income' ? receipt.amount : -receipt.amount;
+           DB.update(DB.COLLECTIONS.ACCOUNTS, pendingAccId, {
+             balance: Utils.parseNum(pendingAccObj.balance) + change
+           });
+        }
+
+        // Delete the clearance receipt
+        DB.delete(collection, receipt.id);
+      }
+    } else {
+      App.toast('Receipt not automatically deleted. Please delete it manually from Main Transactions.', 'warning');
+    }
+
+    // Move back to Pending
+    DB.update(collection, id, { pendingStatus: null, pendingClearanceId: null });
+    App.toast('Clearance Reverted! Wapas Pending me aa gaya.', 'success');
     App.refreshPage();
   }
 };

@@ -4,6 +4,12 @@
 
 const Dashboard = {
   render() {
+    // IMPORTANT: Clear any stray filters so they don't affect Dashboard totals/lists!
+    if (typeof Transactions !== 'undefined') {
+      Transactions.accountFilter = null;
+      Transactions.partyFilter = null;
+    }
+
     const settings = DB.getSettings();
     const savedPrefs = settings.dashboardPreferences || {};
     const prefs = {

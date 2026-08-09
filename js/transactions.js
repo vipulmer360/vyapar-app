@@ -159,7 +159,10 @@ const Transactions = {
 
                   let partyDisplay = '-';
                   let mathNotes = '';
-                  if (t.parties && t.parties.length > 0) {
+                  
+                  if (t.isClearanceReceipt && t.displayPartyName) {
+                     partyDisplay = this.formatPartyCell(t.displayPartyName);
+                  } else if (t.parties && t.parties.length > 0) {
                      partyDisplay = this.formatPartyCell(t.parties[0].partyName);
                      if (t.parties.length > 1) {
                         partyDisplay += ` <span style="font-size:0.75em;color:var(--text-muted)">(+${t.parties.length - 1})</span>`;
@@ -181,7 +184,9 @@ const Transactions = {
 
                   let partyDisplayAmount = parseFloat(t.price) || 0;
                   
-                  if (t.parties && t.parties.length > 0) {
+                  if (t.isClearanceReceipt && t.displayPartyAmount) {
+                     partyDisplayAmount = parseFloat(t.displayPartyAmount);
+                  } else if (t.parties && t.parties.length > 0) {
                      partyDisplayAmount = t.parties.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
                   }
                   
@@ -213,6 +218,9 @@ const Transactions = {
                         <div class="table-actions" style="justify-content:center">
                           ${options.isPendingAccount && t.pendingStatus !== 'cleared' ? `
                             <button class="btn btn-ghost btn-icon text-success" onclick="Accounts.openClearanceModal('${t.id}', '${t.type}')" title="Clear Payment">✅</button>
+                          ` : ''}
+                          ${options.isPendingAccount && t.pendingStatus === 'cleared' ? `
+                            <button class="btn btn-ghost btn-icon text-warning" onclick="Accounts.revertClearance('${t.id}', '${t.type}')" title="Revert Clearance">↩️</button>
                           ` : ''}
                           <button class="btn btn-ghost btn-icon" onclick="Transactions.openEditModal('${t.type}', '${t.id}')" title="Edit">${Utils.icons.edit}</button>
                           <button class="btn btn-ghost btn-icon text-danger" onclick="Transactions.deleteTransaction('${t.type}', '${t.id}')" title="Delete">${Utils.icons.trash}</button>
